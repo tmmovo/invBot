@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mxmimii的物品清单</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background-color: #1e1e1e;
+            color: #ffffff;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .items-grid {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .item-container {
+            background-color: #2d2d2d;
+            border-radius: 8px;
+            padding: 15px;
+            border: 1px solid #444;
+            position: relative;
+            min-height: 100px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .item-image {
+            width: 64px;
+            height: 64px;
+            cursor: pointer;
+            border-radius: 4px;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: -webkit-crisp-edges;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            transition: transform 0.2s ease;
+        }
+        
+        .item-image:hover {
+            transform: scale(1.5);
+            z-index: 10;
+            position: relative;
+        }
+        
+        .slot-info {
+            font-size: 0.8em;
+            color: #aaa;
+            margin-top: 5px;
+        }
+        
+        .item-name {
+            font-size: 12px;
+            font-weight: bold;
+            color: #fff;
+            margin-top: 5px;
+            text-align: center;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .item-lore {
+            font-size: 10px;
+            color: #ccc;
+            margin-top: 3px;
+            text-align: center;
+            max-width: 100%;
+            max-height: 40px;
+            overflow: hidden;
+            line-height: 1.2;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+        }
+        
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid #666;
+            border-radius: 4px;
+            padding: 10px;
+            z-index: 1000;
+            max-width: 300px;
+            display: none;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        
+        .tooltip-name {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .tooltip-lore {
+            font-size: 12px;
+            white-space: pre-line;
+        }
+        
+        .context-menu {
+            position: absolute;
+            background: #333;
+            border: 1px solid #666;
+            border-radius: 8px;
+            padding: 5px 0;
+            z-index: 1001;
+            display: none;
+            min-width: 150px;
+            overflow: hidden;
+        }
+        
+        .context-menu-item {
+            padding: 8px 15px;
+            cursor: pointer;
+            font-size: 12px;
+            border-radius: 6px;
+            margin: 2px 5px;
+            transition: background-color 0.2s ease;
+        }
+        
+        .context-menu-item:hover {
+            background: #13C468;
+            color: white;
+        }
+        
+        .empty-slot {
+            background-color: #1a1a1a;
+            border: 1px dashed #444;
+            color: #666;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9em;
+        }
+        
+        .image-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.8);
+        }
+        
+        .modal-content {
+            margin: auto;
+            display: block;
+            max-width: 90%;
+            max-height: 90%;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: -webkit-crisp-edges;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+        
+        .close-modal {
+            position: absolute;
+            top: 15px;
+            right: 35px;
+            color: #fff;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .close-modal:hover {
+            color: #ccc;
+        }
+        
+        .bold { font-weight: bold; }
+        .italic { font-style: italic; }
+        .underlined { text-decoration: underline; }
+        .strikethrough { text-decoration: line-through; }
+        .obfuscated { text-decoration: overline; }
+        
+        /* 颜色映射 */
+        .color-black { color: #000000; }
+        .color-dark_blue { color: #0000AA; }
+        .color-dark_green { color: #00AA00; }
+        .color-dark_aqua { color: #00AAAA; }
+        .color-dark_red { color: #AA0000; }
+        .color-dark_purple { color: #AA00AA; }
+        .color-gold { color: #FFAA00; }
+        .color-gray { color: #AAAAAA; }
+        .color-dark_gray { color: #555555; }
+        .color-blue { color: #5555FF; }
+        .color-green { color: #55FF55; }
+        .color-aqua { color: #55FFFF; }
+        .color-red { color: #FF5555; }
+        .color-light_purple { color: #FF55FF; }
+        .color-yellow { color: #FFFF55; }
+        .color-white { color: #FFFFFF; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Mxmimii的物品清单</h1>
+            <p>共 32 个物品 • 生成时间: 2026/1/1 02:09:53</p>
+            <p>声明：物品查询功能为纯公益性质，不涉及任何实体货币交易，查询结果仅供参考，不保证100%准确，请勿完全依赖，因使用本功能产生的问题，提供方不承担任何责任，该功能完全使用游戏内合法功能，不会使用其他任何开挂、作弊、 hack 等手段获取物品信息</p>
+            <p>由于其公益性质，需要收取游戏内的“金币”，但绝对不会涉及实体货币，图片加载可能会有延迟，请耐心等待，我们会慢慢改进服务体验</p>
+        </div>
+        <div class="items-grid" id="itemsContainer">
+            <div class="item-container">
+        <img src="images/chainmail_helmet.png" class="item-image" alt="chainmail_helmet" data-slot="0" data-index="0">
+        <div class="slot-info">槽位: 0</div>
+    </div>
+<div class="item-container">
+        <img src="images/chainmail_leggings.png" class="item-image" alt="chainmail_leggings" data-slot="1" data-index="1">
+        <div class="slot-info">槽位: 1</div>
+    </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 2</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 3</div>
+        </div>
+<div class="item-container">
+        <img src="images/black_stained_glass_pane.png" class="item-image" alt=" " data-slot="4" data-index="4">
+        <div class="slot-info">槽位: 4</div>
+    </div>
+<div class="item-container">
+        <img src="images/ender_chest.png" class="item-image" alt="Open ender chest" data-slot="5" data-index="5">
+        <div class="slot-info">槽位: 5</div>
+    </div>
+<div class="item-container">
+        <img src="images/black_stained_glass_pane.png" class="item-image" alt=" " data-slot="6" data-index="6">
+        <div class="slot-info">槽位: 6</div>
+    </div>
+<div class="item-container">
+        <img src="images/black_stained_glass_pane.png" class="item-image" alt=" " data-slot="7" data-index="7">
+        <div class="slot-info">槽位: 7</div>
+    </div>
+<div class="item-container">
+        <img src="images/black_stained_glass_pane.png" class="item-image" alt=" " data-slot="8" data-index="8">
+        <div class="slot-info">槽位: 8</div>
+    </div>
+<div class="item-container">
+        <img src="images/chainmail_chestplate.png" class="item-image" alt="chainmail_chestplate" data-slot="9" data-index="9">
+        <div class="slot-info">槽位: 9</div>
+    </div>
+<div class="item-container">
+        <img src="images/chainmail_boots.png" class="item-image" alt="chainmail_boots" data-slot="10" data-index="10">
+        <div class="slot-info">槽位: 10</div>
+    </div>
+<div class="item-container">
+        <img src="images/black_stained_glass_pane.png" class="item-image" alt=" " data-slot="11" data-index="11">
+        <div class="slot-info">槽位: 11</div>
+    </div>
+<div class="item-container">
+        <img src="images/black_stained_glass_pane.png" class="item-image" alt=" " data-slot="12" data-index="12">
+        <div class="slot-info">槽位: 12</div>
+    </div>
+<div class="item-container">
+        <img src="images/black_stained_glass_pane.png" class="item-image" alt=" " data-slot="13" data-index="13">
+        <div class="slot-info">槽位: 13</div>
+    </div>
+<div class="item-container">
+        <img src="images/black_stained_glass_pane.png" class="item-image" alt=" " data-slot="14" data-index="14">
+        <div class="slot-info">槽位: 14</div>
+    </div>
+<div class="item-container">
+        <img src="images/black_stained_glass_pane.png" class="item-image" alt=" " data-slot="15" data-index="15">
+        <div class="slot-info">槽位: 15</div>
+    </div>
+<div class="item-container">
+        <img src="images/black_stained_glass_pane.png" class="item-image" alt=" " data-slot="16" data-index="16">
+        <div class="slot-info">槽位: 16</div>
+    </div>
+<div class="item-container">
+        <img src="images/black_stained_glass_pane.png" class="item-image" alt=" " data-slot="17" data-index="17">
+        <div class="slot-info">槽位: 17</div>
+    </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 18</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 19</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 20</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 21</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 22</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 23</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 24</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 25</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 26</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 27</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 28</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 29</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 30</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 31</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 32</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 33</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 34</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 35</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 36</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 37</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 38</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 39</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 40</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 41</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 42</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 43</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 44</div>
+        </div>
+<div class="item-container">
+        <img src="images/ghast_spawn_egg.png" class="item-image" alt="ghast_spawn_egg" data-slot="45" data-index="45">
+        <div class="slot-info">槽位: 45</div>
+    </div>
+<div class="item-container">
+        <img src="images/cave_spider_spawn_egg.png" class="item-image" alt="cave_spider_spawn_egg" data-slot="46" data-index="46">
+        <div class="slot-info">槽位: 46</div>
+    </div>
+<div class="item-container">
+        <img src="images/spider_spawn_egg.png" class="item-image" alt="spider_spawn_egg" data-slot="47" data-index="47">
+        <div class="slot-info">槽位: 47</div>
+    </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 48</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 49</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 50</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 51</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 52</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 53</div>
+        </div>
+        </div>
+        
+        <!-- 工具提示 -->
+        <div id="tooltip" class="tooltip"></div>
+        
+        <!-- 右键菜单 -->
+        <div id="contextMenu" class="context-menu"></div>
+        
+        <!-- 图片放大模态框 -->
+        <div id="imageModal" class="image-modal">
+            <span class="close-modal" onclick="closeModal()">&times;</span>
+            <img class="modal-content" id="modalImage">
+        </div>
+    </div>
+    
+    <script>
+        // 全局变量存储物品数据
+        const itemsData = [{"slot":0,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"CMIGUIIcon\":{\"type\":\"string\",\"value\":\"LIProtection\"},\"Damage\":{\"type\":\"int\",\"value\":0}}}","parsed":{"item_name":"chainmail_helmet","display_name":null,"lore_text":null,"cldata_slots":null}},{"slot":1,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"CMIGUIIcon\":{\"type\":\"string\",\"value\":\"LIProtection\"},\"Damage\":{\"type\":\"int\",\"value\":0}}}","parsed":{"item_name":"chainmail_leggings","display_name":null,"lore_text":null,"cldata_slots":null}},{"slot":2,"parsed":{"item_name":"empty"}},{"slot":3,"parsed":{"item_name":"empty"}},{"slot":4,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"CMIGUIIcon\":{\"type\":\"string\",\"value\":\"LIProtection\"},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"}],\\\"text\\\":\\\"\\\"}\"}}}}}","parsed":{"item_name":"black_stained_glass_pane","display_name":"<span class=\"\"><span class=\"\"> </span></span>","lore_text":null,"cldata_slots":null}},{"slot":5,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"CMIGUIIcon\":{\"type\":\"string\",\"value\":\"LIProtection\"},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"Open ender chest\\\"}],\\\"text\\\":\\\"\\\"}\"}}}}}","parsed":{"item_name":"ender_chest","display_name":"<span class=\"\"><span class=\"color-gray\">Open ender chest</span></span>","lore_text":null,"cldata_slots":null}},{"slot":6,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"CMIGUIIcon\":{\"type\":\"string\",\"value\":\"LIProtection\"},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"}],\\\"text\\\":\\\"\\\"}\"}}}}}","parsed":{"item_name":"black_stained_glass_pane","display_name":"<span class=\"\"><span class=\"\"> </span></span>","lore_text":null,"cldata_slots":null}},{"slot":7,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"CMIGUIIcon\":{\"type\":\"string\",\"value\":\"LIProtection\"},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"}],\\\"text\\\":\\\"\\\"}\"}}}}}","parsed":{"item_name":"black_stained_glass_pane","display_name":"<span class=\"\"><span class=\"\"> </span></span>","lore_text":null,"cldata_slots":null}},{"slot":8,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"CMIGUIIcon\":{\"type\":\"string\",\"value\":\"LIProtection\"},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"}],\\\"text\\\":\\\"\\\"}\"}}}}}","parsed":{"item_name":"black_stained_glass_pane","display_name":"<span class=\"\"><span class=\"\"> </span></span>","lore_text":null,"cldata_slots":null}},{"slot":9,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"CMIGUIIcon\":{\"type\":\"string\",\"value\":\"LIProtection\"},\"Damage\":{\"type\":\"int\",\"value\":0}}}","parsed":{"item_name":"chainmail_chestplate","display_name":null,"lore_text":null,"cldata_slots":null}},{"slot":10,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"CMIGUIIcon\":{\"type\":\"string\",\"value\":\"LIProtection\"},\"Damage\":{\"type\":\"int\",\"value\":0}}}","parsed":{"item_name":"chainmail_boots","display_name":null,"lore_text":null,"cldata_slots":null}},{"slot":11,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"CMIGUIIcon\":{\"type\":\"string\",\"value\":\"LIProtection\"},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"}],\\\"text\\\":\\\"\\\"}\"}}}}}","parsed":{"item_name":"black_stained_glass_pane","display_name":"<span class=\"\"><span class=\"\"> </span></span>","lore_text":null,"cldata_slots":null}},{"slot":12,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"CMIGUIIcon\":{\"type\":\"string\",\"value\":\"LIProtection\"},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"}],\\\"text\\\":\\\"\\\"}\"}}}}}","parsed":{"item_name":"black_stained_glass_pane","display_name":"<span class=\"\"><span class=\"\"> </span></span>","lore_text":null,"cldata_slots":null}},{"slot":13,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"CMIGUIIcon\":{\"type\":\"string\",\"value\":\"LIProtection\"},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"}],\\\"text\\\":\\\"\\\"}\"}}}}}","parsed":{"item_name":"black_stained_glass_pane","display_name":"<span class=\"\"><span class=\"\"> </span></span>","lore_text":null,"cldata_slots":null}},{"slot":14,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"CMIGUIIcon\":{\"type\":\"string\",\"value\":\"LIProtection\"},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"}],\\\"text\\\":\\\"\\\"}\"}}}}}","parsed":{"item_name":"black_stained_glass_pane","display_name":"<span class=\"\"><span class=\"\"> </span></span>","lore_text":null,"cldata_slots":null}},{"slot":15,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"CMIGUIIcon\":{\"type\":\"string\",\"value\":\"LIProtection\"},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"}],\\\"text\\\":\\\"\\\"}\"}}}}}","parsed":{"item_name":"black_stained_glass_pane","display_name":"<span class=\"\"><span class=\"\"> </span></span>","lore_text":null,"cldata_slots":null}},{"slot":16,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"CMIGUIIcon\":{\"type\":\"string\",\"value\":\"LIProtection\"},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"}],\\\"text\\\":\\\"\\\"}\"}}}}}","parsed":{"item_name":"black_stained_glass_pane","display_name":"<span class=\"\"><span class=\"\"> </span></span>","lore_text":null,"cldata_slots":null}},{"slot":17,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"CMIGUIIcon\":{\"type\":\"string\",\"value\":\"LIProtection\"},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"}],\\\"text\\\":\\\"\\\"}\"}}}}}","parsed":{"item_name":"black_stained_glass_pane","display_name":"<span class=\"\"><span class=\"\"> </span></span>","lore_text":null,"cldata_slots":null}},{"slot":18,"parsed":{"item_name":"empty"}},{"slot":19,"parsed":{"item_name":"empty"}},{"slot":20,"parsed":{"item_name":"empty"}},{"slot":21,"parsed":{"item_name":"empty"}},{"slot":22,"parsed":{"item_name":"empty"}},{"slot":23,"parsed":{"item_name":"empty"}},{"slot":24,"parsed":{"item_name":"empty"}},{"slot":25,"parsed":{"item_name":"empty"}},{"slot":26,"parsed":{"item_name":"empty"}},{"slot":27,"parsed":{"item_name":"empty"}},{"slot":28,"parsed":{"item_name":"empty"}},{"slot":29,"parsed":{"item_name":"empty"}},{"slot":30,"parsed":{"item_name":"empty"}},{"slot":31,"parsed":{"item_name":"empty"}},{"slot":32,"parsed":{"item_name":"empty"}},{"slot":33,"parsed":{"item_name":"empty"}},{"slot":34,"parsed":{"item_name":"empty"}},{"slot":35,"parsed":{"item_name":"empty"}},{"slot":36,"parsed":{"item_name":"empty"}},{"slot":37,"parsed":{"item_name":"empty"}},{"slot":38,"parsed":{"item_name":"empty"}},{"slot":39,"parsed":{"item_name":"empty"}},{"slot":40,"parsed":{"item_name":"empty"}},{"slot":41,"parsed":{"item_name":"empty"}},{"slot":42,"parsed":{"item_name":"empty"}},{"slot":43,"parsed":{"item_name":"empty"}},{"slot":44,"parsed":{"item_name":"empty"}},{"slot":45,"snbt":"{}","parsed":{"item_name":"ghast_spawn_egg","display_name":null,"lore_text":null,"cldata_slots":null}},{"slot":46,"snbt":"{}","parsed":{"item_name":"cave_spider_spawn_egg","display_name":null,"lore_text":null,"cldata_slots":null}},{"slot":47,"snbt":"{}","parsed":{"item_name":"spider_spawn_egg","display_name":null,"lore_text":null,"cldata_slots":null}},{"slot":48,"parsed":{"item_name":"empty"}},{"slot":49,"parsed":{"item_name":"empty"}},{"slot":50,"parsed":{"item_name":"empty"}},{"slot":51,"parsed":{"item_name":"empty"}},{"slot":52,"parsed":{"item_name":"empty"}},{"slot":53,"parsed":{"item_name":"empty"}}];
+        
+        // 工具提示显示
+        function showTooltip(event, slotNumber) {
+            const tooltip = document.getElementById('tooltip');
+            // 根据槽位编号查找物品数据
+            const item = itemsData.find(item => item.slot === parseInt(slotNumber));
+            
+            if (!item || !item.parsed) return;
+            
+            let tooltipHTML = '';
+            
+            // 显示物品名称
+            if (item.parsed && item.parsed.display_name) {
+                tooltipHTML += '<div class="tooltip-name">' + item.parsed.display_name + '</div>';
+            } else if (item.parsed && item.parsed.item_name) {
+                tooltipHTML += '<div class="tooltip-name">' + item.parsed.item_name + '</div>';
+            }
+            
+            // 显示Lore信息
+            if (item.parsed && item.parsed.lore_text) {
+                tooltipHTML += '<div class="tooltip-lore">' + item.parsed.lore_text + '</div>';
+            }
+            
+            if (tooltipHTML) {
+                tooltip.innerHTML = tooltipHTML;
+                tooltip.style.display = 'block';
+                tooltip.style.left = (event.pageX + 10) + 'px';
+                tooltip.style.top = (event.pageY + 10) + 'px';
+            }
+        }
+        
+        // 隐藏工具提示
+        function hideTooltip() {
+            const tooltip = document.getElementById('tooltip');
+            tooltip.style.display = 'none';
+        }
+        
+        // 显示左键菜单
+        function showContextMenu(event, slotNumber) {
+            event.preventDefault();
+            event.stopPropagation();
+            
+            const contextMenu = document.getElementById('contextMenu');
+            // 根据槽位编号查找物品数据
+            const item = itemsData.find(item => item.slot === parseInt(slotNumber));
+            
+            if (!item) {
+                console.log('未找到物品数据，槽位:', slotNumber);
+                return;
+            }
+            
+            let menuHTML = '';
+            
+            // 如果有CLData，显示复制槽位信息和查看槽位选项
+            if (item.parsed && item.parsed.cldata_slots) {
+                menuHTML += '<div class="context-menu-item" onclick="copySlotInfo(' + slotNumber + ')">复制槽位信息</div>';
+                menuHTML += '<div class="context-menu-item" onclick="viewSlotInfo(' + slotNumber + ')">查看槽位</div>';
+            }
+            
+            // 总是显示复制SNBT信息选项
+            menuHTML += '<div class="context-menu-item" onclick="copySNBTInfo(' + slotNumber + ')">复制SNBT信息</div>';
+            
+            // 显示复制获取物品信息选项
+            menuHTML += '<div class="context-menu-item" onclick="copyGiveCommand(' + slotNumber + ')">复制获取物品信息</div>';
+            
+            contextMenu.innerHTML = menuHTML;
+            contextMenu.style.display = 'block';
+            contextMenu.style.left = event.pageX + 'px';
+            contextMenu.style.top = event.pageY + 'px';
+            
+            console.log('显示菜单，槽位:', slotNumber, '物品数据:', item);
+        }
+        
+        // 隐藏右键菜单
+        function hideContextMenu() {
+            const contextMenu = document.getElementById('contextMenu');
+            contextMenu.style.display = 'none';
+        }
+        
+        // 复制槽位信息
+        function copySlotInfo(slotNumber) {
+            const item = itemsData.find(item => item.slot === parseInt(slotNumber));
+            if (item && item.parsed && item.parsed.cldata_slots) {
+                navigator.clipboard.writeText(item.parsed.cldata_slots).then(() => {
+                    alert('槽位信息已复制到剪贴板!');
+                }).catch(err => {
+                    console.error('复制失败:', err);
+                });
+            }
+            hideContextMenu();
+        }
+        
+        // 查看槽位信息
+        function viewSlotInfo(slotNumber) {
+            const item = itemsData.find(item => item.slot === parseInt(slotNumber));
+            if (item && item.parsed && item.parsed.cldata_slots) {
+                // 尝试解析JSON格式的槽位信息
+                try {
+                    const slotInfo = JSON.parse(item.parsed.cldata_slots);
+                    alert('槽位信息:\n' + JSON.stringify(slotInfo, null, 2));
+                } catch (e) {
+                    // 如果不是JSON，直接显示原始文本
+                    alert('槽位信息:\n' + item.parsed.cldata_slots);
+                }
+            }
+            hideContextMenu();
+        }
+        
+        // 复制SNBT信息
+        function copySNBTInfo(slotNumber) {
+            const item = itemsData.find(item => item.slot === parseInt(slotNumber));
+            if (item) {
+                navigator.clipboard.writeText(item.snbt).then(() => {
+                    alert('SNBT信息已复制到剪贴板!');
+                }).catch(err => {
+                    console.error('复制失败:', err);
+                });
+            }
+            hideContextMenu();
+        }
+        
+        // 复制获取物品信息
+        function copyGiveCommand(slotNumber) {
+            const item = itemsData.find(item => item.slot === parseInt(slotNumber));
+            if (item && item.parsed) {
+                const command = `/give @p ${item.parsed.item_name}`;
+                navigator.clipboard.writeText(command).then(() => {
+                    alert('获取物品命令已复制到剪贴板!');
+                }).catch(err => {
+                    console.error('复制失败:', err);
+                });
+            }
+            hideContextMenu();
+        }
+        
+        // 图片放大功能
+        function openModal(img) {
+            const modal = document.getElementById('imageModal');
+            const modalImg = document.getElementById('modalImage');
+            modal.style.display = 'block';
+            modalImg.src = img.src;
+        }
+        
+        function closeModal() {
+            const modal = document.getElementById('imageModal');
+            modal.style.display = 'none';
+        }
+        
+        // 点击模态框外部关闭
+        window.onclick = function(event) {
+            const modal = document.getElementById('imageModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+        
+        // 页面加载完成后初始化事件监听
+        document.addEventListener('DOMContentLoaded', function() {
+            // 为所有物品图片添加事件监听
+            const images = document.querySelectorAll('.item-image');
+            images.forEach((img) => {
+                // 获取槽位编号
+                const slotNumber = img.getAttribute('data-slot');
+                
+                // 鼠标悬停显示工具提示
+                img.addEventListener('mouseenter', (e) => showTooltip(e, slotNumber));
+                img.addEventListener('mouseleave', hideTooltip);
+                
+                // 左键点击显示菜单
+                img.addEventListener('click', (e) => showContextMenu(e, slotNumber));
+                
+                // 右键点击放大图片
+                img.addEventListener('contextmenu', function(e) {
+                    e.preventDefault();
+                    openModal(this);
+                });
+            });
+            
+            // 点击页面其他地方隐藏菜单
+            document.addEventListener('click', hideContextMenu);
+        });
+        
+        // 文本样式转换函数
+        function applyTextStyles(textComponent) {
+            if (!textComponent) return '';
+            
+            let style = '';
+            let classes = '';
+            
+            if (textComponent.bold) classes += 'bold ';
+            if (textComponent.italic) classes += 'italic ';
+            if (textComponent.underlined) classes += 'underlined ';
+            if (textComponent.strikethrough) classes += 'strikethrough ';
+            if (textComponent.obfuscated) classes += 'obfuscated ';
+            if (textComponent.color) classes += 'color-' + textComponent.color + ' ';
+            
+            let content = textComponent.text || '';
+            
+            // 处理嵌套文本
+            if (textComponent.extra && Array.isArray(textComponent.extra)) {
+                content += textComponent.extra.map(extra => applyTextStyles(extra)).join('');
+            }
+            
+            return '<span class="' + classes.trim() + '">' + content + '</span>';
+        }
+    </script>
+</body>
+</html>
