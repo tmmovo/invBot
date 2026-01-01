@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1778586262的物品清单</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background-color: #1e1e1e;
+            color: #ffffff;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .items-grid {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .item-container {
+            background-color: #2d2d2d;
+            border-radius: 8px;
+            padding: 15px;
+            border: 1px solid #444;
+            position: relative;
+            min-height: 100px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .item-image {
+            width: 64px;
+            height: 64px;
+            cursor: pointer;
+            border-radius: 4px;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: -webkit-crisp-edges;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            transition: transform 0.2s ease;
+        }
+        
+        .item-image:hover {
+            transform: scale(1.5);
+            z-index: 10;
+            position: relative;
+        }
+        
+        .slot-info {
+            font-size: 0.8em;
+            color: #aaa;
+            margin-top: 5px;
+        }
+        
+        .item-name {
+            font-size: 12px;
+            font-weight: bold;
+            color: #fff;
+            margin-top: 5px;
+            text-align: center;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .item-lore {
+            font-size: 10px;
+            color: #ccc;
+            margin-top: 3px;
+            text-align: center;
+            max-width: 100%;
+            max-height: 40px;
+            overflow: hidden;
+            line-height: 1.2;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+        }
+        
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid #666;
+            border-radius: 4px;
+            padding: 10px;
+            z-index: 1000;
+            max-width: 300px;
+            display: none;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        
+        .tooltip-name {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .tooltip-lore {
+            font-size: 12px;
+            white-space: pre-line;
+        }
+        
+        .context-menu {
+            position: absolute;
+            background: #333;
+            border: 1px solid #666;
+            border-radius: 8px;
+            padding: 5px 0;
+            z-index: 1001;
+            display: none;
+            min-width: 150px;
+            overflow: hidden;
+        }
+        
+        .context-menu-item {
+            padding: 8px 15px;
+            cursor: pointer;
+            font-size: 12px;
+            border-radius: 6px;
+            margin: 2px 5px;
+            transition: background-color 0.2s ease;
+        }
+        
+        .context-menu-item:hover {
+            background: #13C468;
+            color: white;
+        }
+        
+        .empty-slot {
+            background-color: #1a1a1a;
+            border: 1px dashed #444;
+            color: #666;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9em;
+        }
+        
+        .image-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.8);
+        }
+        
+        .modal-content {
+            margin: auto;
+            display: block;
+            max-width: 90%;
+            max-height: 90%;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: -webkit-crisp-edges;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+        
+        .close-modal {
+            position: absolute;
+            top: 15px;
+            right: 35px;
+            color: #fff;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .close-modal:hover {
+            color: #ccc;
+        }
+        
+        .bold { font-weight: bold; }
+        .italic { font-style: italic; }
+        .underlined { text-decoration: underline; }
+        .strikethrough { text-decoration: line-through; }
+        .obfuscated { text-decoration: overline; }
+        
+        /* 颜色映射 */
+        .color-black { color: #000000; }
+        .color-dark_blue { color: #0000AA; }
+        .color-dark_green { color: #00AA00; }
+        .color-dark_aqua { color: #00AAAA; }
+        .color-dark_red { color: #AA0000; }
+        .color-dark_purple { color: #AA00AA; }
+        .color-gold { color: #FFAA00; }
+        .color-gray { color: #AAAAAA; }
+        .color-dark_gray { color: #555555; }
+        .color-blue { color: #5555FF; }
+        .color-green { color: #55FF55; }
+        .color-aqua { color: #55FFFF; }
+        .color-red { color: #FF5555; }
+        .color-light_purple { color: #FF55FF; }
+        .color-yellow { color: #FFFF55; }
+        .color-white { color: #FFFFFF; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>1778586262的物品清单</h1>
+            <p>共 50 个物品 • 生成时间: 2026/1/1 12:54:18</p>
+            <p>声明：物品查询功能为纯公益性质，不涉及任何实体货币交易，查询结果仅供参考，不保证100%准确，请勿完全依赖，因使用本功能产生的问题，提供方不承担任何责任，该功能完全使用游戏内合法功能，不会使用其他任何开挂、作弊、 hack 等手段获取物品信息</p>
+            <p>由于其公益性质，需要收取游戏内的“金币”，但绝对不会涉及实体货币，图片加载可能会有延迟，请耐心等待，我们会慢慢改进服务体验</p>
+        </div>
+        <div class="items-grid" id="itemsContainer">
+            <div class="item-container">
+        <img src="images/diamond_helmet.png" class="item-image" alt="平凡的 像素八荒神盔" data-slot="0" data-index="0">
+        <div class="slot-info">槽位: 0</div>
+    </div>
+<div class="item-container">
+        <img src="images/chainmail_leggings.png" class="item-image" alt="chainmail_leggings" data-slot="1" data-index="1">
+        <div class="slot-info">槽位: 1</div>
+    </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 2</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 3</div>
+        </div>
+<div class="item-container">
+        <img src="images/black_stained_glass_pane.png" class="item-image" alt=" " data-slot="4" data-index="4">
+        <div class="slot-info">槽位: 4</div>
+    </div>
+<div class="item-container">
+        <img src="images/ender_chest.png" class="item-image" alt="Open ender chest" data-slot="5" data-index="5">
+        <div class="slot-info">槽位: 5</div>
+    </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 6</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 7</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 8</div>
+        </div>
+<div class="item-container">
+        <img src="images/chainmail_chestplate.png" class="item-image" alt="chainmail_chestplate" data-slot="9" data-index="9">
+        <div class="slot-info">槽位: 9</div>
+    </div>
+<div class="item-container">
+        <img src="images/diamond_boots.png" class="item-image" alt="平凡的 朴素之靴" data-slot="10" data-index="10">
+        <div class="slot-info">槽位: 10</div>
+    </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 11</div>
+        </div>
+<div class="item-container">
+        <img src="images/black_stained_glass_pane.png" class="item-image" alt=" " data-slot="12" data-index="12">
+        <div class="slot-info">槽位: 12</div>
+    </div>
+<div class="item-container">
+        <img src="images/black_stained_glass_pane.png" class="item-image" alt=" " data-slot="13" data-index="13">
+        <div class="slot-info">槽位: 13</div>
+    </div>
+<div class="item-container">
+        <img src="images/black_stained_glass_pane.png" class="item-image" alt=" " data-slot="14" data-index="14">
+        <div class="slot-info">槽位: 14</div>
+    </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 15</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 16</div>
+        </div>
+<div class="item-container">
+        <img src="images/black_stained_glass_pane.png" class="item-image" alt=" " data-slot="17" data-index="17">
+        <div class="slot-info">槽位: 17</div>
+    </div>
+<div class="item-container">
+        <img src="images/netherite_ingot.png" class="item-image" alt="▸ 陨星抽奖箱钥匙" data-slot="18" data-index="18">
+        <div class="slot-info">槽位: 18</div>
+    </div>
+<div class="item-container">
+        <img src="images/yellow_dye.png" class="item-image" alt="▸ 活动抽奖箱钥匙" data-slot="19" data-index="19">
+        <div class="slot-info">槽位: 19</div>
+    </div>
+<div class="item-container">
+        <img src="images/gold_ingot.png" class="item-image" alt="▸ 金币抽奖箱钥匙" data-slot="20" data-index="20">
+        <div class="slot-info">槽位: 20</div>
+    </div>
+<div class="item-container">
+        <img src="images/sugar.png" class="item-image" alt="▸ 变形抽奖箱钥匙" data-slot="21" data-index="21">
+        <div class="slot-info">槽位: 21</div>
+    </div>
+<div class="item-container">
+        <img src="images/cyan_dye.png" class="item-image" alt="▸ 附魔宝石抽奖箱钥匙" data-slot="22" data-index="22">
+        <div class="slot-info">槽位: 22</div>
+    </div>
+<div class="item-container">
+        <img src="images/lime_dye.png" class="item-image" alt="▸ 属性宝石抽奖箱钥匙" data-slot="23" data-index="23">
+        <div class="slot-info">槽位: 23</div>
+    </div>
+<div class="item-container">
+        <img src="images/orange_dye.png" class="item-image" alt="▸ 远古抽奖箱钥匙" data-slot="24" data-index="24">
+        <div class="slot-info">槽位: 24</div>
+    </div>
+<div class="item-container">
+        <img src="images/ink_sac.png" class="item-image" alt="▸ 符文抽奖箱钥匙" data-slot="25" data-index="25">
+        <div class="slot-info">槽位: 25</div>
+    </div>
+<div class="item-container">
+        <img src="images/slime_ball.png" class="item-image" alt="▸ 玩偶实体币" data-slot="26" data-index="26">
+        <div class="slot-info">槽位: 26</div>
+    </div>
+<div class="item-container">
+        <img src="images/coal.png" class="item-image" alt="高等淬炼宝石" data-slot="27" data-index="27">
+        <div class="slot-info">槽位: 27</div>
+    </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 28</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 29</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 30</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 31</div>
+        </div>
+<div class="item-container">
+        <img src="images/paper.png" class="item-image" alt="巨大卷心菜" data-slot="32" data-index="32">
+        <div class="slot-info">槽位: 32</div>
+    </div>
+<div class="item-container">
+        <img src="images/paper.png" class="item-image" alt="巨大菠萝" data-slot="33" data-index="33">
+        <div class="slot-info">槽位: 33</div>
+    </div>
+<div class="item-container">
+        <img src="images/paper.png" class="item-image" alt="巨大红叶卷心菜" data-slot="34" data-index="34">
+        <div class="slot-info">槽位: 34</div>
+    </div>
+<div class="item-container">
+        <img src="images/paper.png" class="item-image" alt="巨大番茄" data-slot="35" data-index="35">
+        <div class="slot-info">槽位: 35</div>
+    </div>
+<div class="item-container">
+        <img src="images/kelp.png" class="item-image" alt="2026年新年头套" data-slot="36" data-index="36">
+        <div class="slot-info">槽位: 36</div>
+    </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 37</div>
+        </div>
+<div class="item-container">
+        <img src="images/sugar.png" class="item-image" alt="[传说] 魔法粉尘" data-slot="38" data-index="38">
+        <div class="slot-info">槽位: 38</div>
+    </div>
+<div class="item-container">
+        <img src="images/paper.png" class="item-image" alt="[传说] 随机卷轴" data-slot="39" data-index="39">
+        <div class="slot-info">槽位: 39</div>
+    </div>
+<div class="item-container">
+        <img src="images/enchanted_book.png" class="item-image" alt="高阶附魔书：致盲 [I]" data-slot="40" data-index="40">
+        <div class="slot-info">槽位: 40</div>
+    </div>
+<div class="item-container">
+        <img src="images/enchanted_book.png" class="item-image" alt="高阶附魔书：磁力拉扯 [III]" data-slot="41" data-index="41">
+        <div class="slot-info">槽位: 41</div>
+    </div>
+<div class="item-container">
+        <img src="images/stick.png" class="item-image" alt="stick" data-slot="42" data-index="42">
+        <div class="slot-info">槽位: 42</div>
+    </div>
+<div class="item-container">
+        <img src="images/diamond.png" class="item-image" alt="diamond" data-slot="43" data-index="43">
+        <div class="slot-info">槽位: 43</div>
+    </div>
+<div class="item-container">
+        <img src="images/shulker_box.png" class="item-image" alt="新手装备" data-slot="44" data-index="44">
+        <div class="slot-info">槽位: 44</div>
+    </div>
+<div class="item-container">
+        <img src="images/diamond_pickaxe.png" class="item-image" alt="diamond_pickaxe" data-slot="45" data-index="45">
+        <div class="slot-info">槽位: 45</div>
+    </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 46</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 47</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 48</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 49</div>
+        </div>
+<div class="item-container">
+        <img src="images/player_head.png" class="item-image" alt="魂引之灯" data-slot="50" data-index="50">
+        <div class="slot-info">槽位: 50</div>
+    </div>
+<div class="item-container">
+        <img src="images/slime_ball.png" class="item-image" alt="弹力球" data-slot="51" data-index="51">
+        <div class="slot-info">槽位: 51</div>
+    </div>
+<div class="item-container">
+        <img src="images/golden_carrot.png" class="item-image" alt="golden_carrot" data-slot="52" data-index="52">
+        <div class="slot-info">槽位: 52</div>
+    </div>
+<div class="item-container">
+        <img src="images/golden_apple.png" class="item-image" alt="golden_apple" data-slot="53" data-index="53">
+        <div class="slot-info">槽位: 53</div>
+    </div>
+        </div>
+        
+        <!-- 工具提示 -->
+        <div id="tooltip" class="tooltip"></div>
+        
+        <!-- 右键菜单 -->
+        <div id="contextMenu" class="context-menu"></div>
+        
+        <!-- 图片放大模态框 -->
+        <div id="imageModal" class="image-modal">
+            <span class="close-modal" onclick="closeModal()">&times;</span>
+            <img class="modal-content" id="modalImage">
+        </div>
+    </div>
+    
+    <script>
+        // 全局变量存储物品数据
+        const itemsData = [{"slot":0,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"CMIGUIIcon\":{\"type\":\"string\",\"value\":\"LIProtection\"},\"Unbreakable\":{\"type\":\"byte\",\"value\":1},\"Damage\":{\"type\":\"int\",\"value\":0},\"ae_enchantment;鹰眼\":{\"type\":\"int\",\"value\":1},\"CLData\":{\"type\":\"compound\",\"value\":{\"ExtraData\":{\"type\":\"string\",\"value\":\"[\\\"Slot,附魔槽,0#空\\\",\\\"Slot,属性槽,0#空\\\",\\\"Slot,附魔槽,0#空\\\",\\\"Slot,属性槽,0#空\\\",\\\"Slot,附魔槽,0#空\\\",\\\"Slot,属性槽,0#空\\\",\\\"Slot,附魔槽,0#空\\\",\\\"Slot,属性槽,0#空\\\",\\\"Slot,附魔槽,0#空\\\",\\\"Slot,属性槽,0#空\\\"]\"},\"Quality\":{\"type\":\"int\",\"value\":0},\"BindName\":{\"type\":\"string\",\"value\":\"1778586262\"},\"LevelData\":{\"type\":\"string\",\"value\":\"[]\"},\"SelectData\":{\"type\":\"string\",\"value\":\"[]\"},\"BZ\":{\"type\":\"string\",\"value\":\"[\\\"魂锁珠\\\",\\\"永恒珠\\\"]\"}}},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"平凡\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"的\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"blue\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"underlined\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"像素八荒神盔\\\"}],\\\"text\\\":\\\"\\\"}\"},\"Lore\":{\"type\":\"list\",\"value\":{\"type\":\"string\",\"value\":[\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"鹰眼 I\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":true,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":false,\\\"color\\\":\\\"light_purple\\\",\\\"text\\\":\\\" 绑定 \\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"属于 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"1778586262 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"玩家\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"死亡不会掉落\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":true,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":false,\\\"color\\\":\\\"light_purple\\\",\\\"text\\\":\\\" 淬炼 \\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"零星淬炼\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"[\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"color\\\":\\\"red\\\",\\\"text\\\":\\\"魂锁珠\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"]\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"[\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"color\\\":\\\"red\\\",\\\"text\\\":\\\"永恒珠\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"]\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"[\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"无宝珠\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"]\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":true,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":false,\\\"color\\\":\\\"light_purple\\\",\\\"text\\\":\\\" 属性 \\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\" 暂无属性\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":true,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":false,\\\"color\\\":\\\"light_purple\\\",\\\"text\\\":\\\" 宝石 \\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"blue\\\",\\\"text\\\":\\\"○ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"<\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"aqua\\\",\\\"text\\\":\\\"附魔槽\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\">\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"○ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"<\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"属性槽\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\">\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"blue\\\",\\\"text\\\":\\\"○ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"<\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"aqua\\\",\\\"text\\\":\\\"附魔槽\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\">\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"○ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"<\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"属性槽\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\">\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"blue\\\",\\\"text\\\":\\\"○ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"<\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"aqua\\\",\\\"text\\\":\\\"附魔槽\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\">\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"○ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"<\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"属性槽\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\">\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"blue\\\",\\\"text\\\":\\\"○ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"<\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"aqua\\\",\\\"text\\\":\\\"附魔槽\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\">\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"○ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"<\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"属性槽\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\">\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"blue\\\",\\\"text\\\":\\\"○ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"<\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"aqua\\\",\\\"text\\\":\\\"附魔槽\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\">\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"○ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"<\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"属性槽\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\">\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":true,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":false,\\\"color\\\":\\\"light_purple\\\",\\\"text\\\":\\\" 品质 \\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\" 防御力 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"100.0\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\" 生命值 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"800.0\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\" 生命加成 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"15.0\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\" 燃烧几率 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"35.0\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\" 燃烧伤害 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"35.0\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\" 闪避几率 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"80.0\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\" 箭伤免疫率 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"15.0\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":true,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一一一一一一一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\" ▣ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"八荒之主，他利用头盔的力量平息了像素混乱\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\" ▣ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"将随着这顶头盔的佩戴者一起，书写辉煌篇章\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":true,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一一一一一一一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"像素绑定\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§-\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"@1778586262\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\" ▣ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"高阶附魔槽位: \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"8\\\"}],\\\"text\\\":\\\"\\\"}\"]}}}},\"slots\":{\"type\":\"int\",\"value\":1}}}","parsed":{"item_name":"diamond_helmet","display_name":"<span class=\"\"><span class=\"color-white\">平凡</span><span class=\"color-gray\">的</span><span class=\"color-blue\"> </span><span class=\"underlined color-dark_red\">像素八荒神盔</span></span>","lore_text":"鹰眼 I\n一一一一 绑定 一一一一\n 属于 1778586262 玩家\n 死亡不会掉落\n一一一一 淬炼 一一一一\n 零星淬炼\n [魂锁珠][永恒珠][无宝珠]\n一一一一 属性 一一一一\n 暂无属性\n一一一一 宝石 一一一一\n ○ <附魔槽>\n ○ <属性槽>\n ○ <附魔槽>\n ○ <属性槽>\n ○ <附魔槽>\n ○ <属性槽>\n ○ <附魔槽>\n ○ <属性槽>\n ○ <附魔槽>\n ○ <属性槽>\n一一一一 品质 一一一一\n 防御力 100.0\n 生命值 800.0\n 生命加成 15.0\n 燃烧几率 35.0\n 燃烧伤害 35.0\n 闪避几率 80.0\n 箭伤免疫率 15.0\n一一一一一一一一一一一\n ▣ 八荒之主，他利用头盔的力量平息了像素混乱\n ▣ 将随着这顶头盔的佩戴者一起，书写辉煌篇章\n一一一一一一一一一一一\n像素绑定\n§-@1778586262\n ▣ 高阶附魔槽位: 8","cldata_slots":"[\n  {\n    \"type\": \"附魔槽\",\n    \"value\": \"0#空\\\",\\\"Slot,属性槽,0#空\\\",\\\"Slot,附魔槽,0#空\\\",\\\"Slot,属性槽,0#空\\\",\\\"Slot,附魔槽,0#空\\\",\\\"Slot,属性槽,0#空\\\",\\\"Slot,附魔槽,0#空\\\",\\\"Slot,属性槽,0#空\\\",\\\"Slot,附魔槽,0#空\\\",\\\"Slot,属性槽,0#空\\\"\"\n  }\n]"}},{"slot":1,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"CMIGUIIcon\":{\"type\":\"string\",\"value\":\"LIProtection\"},\"Damage\":{\"type\":\"int\",\"value\":0}}}","parsed":{"item_name":"chainmail_leggings","display_name":null,"lore_text":null,"cldata_slots":null}},{"slot":2,"parsed":{"item_name":"empty"}},{"slot":3,"parsed":{"item_name":"empty"}},{"slot":4,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"CMIGUIIcon\":{\"type\":\"string\",\"value\":\"LIProtection\"},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"}],\\\"text\\\":\\\"\\\"}\"}}}}}","parsed":{"item_name":"black_stained_glass_pane","display_name":"<span class=\"\"><span class=\"\"> </span></span>","lore_text":null,"cldata_slots":null}},{"slot":5,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"CMIGUIIcon\":{\"type\":\"string\",\"value\":\"LIProtection\"},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"Open ender chest\\\"}],\\\"text\\\":\\\"\\\"}\"}}}}}","parsed":{"item_name":"ender_chest","display_name":"<span class=\"\"><span class=\"color-gray\">Open ender chest</span></span>","lore_text":null,"cldata_slots":null}},{"slot":6,"parsed":{"item_name":"empty"}},{"slot":7,"parsed":{"item_name":"empty"}},{"slot":8,"parsed":{"item_name":"empty"}},{"slot":9,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"CMIGUIIcon\":{\"type\":\"string\",\"value\":\"LIProtection\"},\"Damage\":{\"type\":\"int\",\"value\":0}}}","parsed":{"item_name":"chainmail_chestplate","display_name":null,"lore_text":null,"cldata_slots":null}},{"slot":10,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"CMIGUIIcon\":{\"type\":\"string\",\"value\":\"LIProtection\"},\"Unbreakable\":{\"type\":\"byte\",\"value\":1},\"Damage\":{\"type\":\"int\",\"value\":0},\"CLData\":{\"type\":\"compound\",\"value\":{\"ExtraData\":{\"type\":\"string\",\"value\":\"[\\\"Slot,附魔槽,0#空\\\",\\\"Slot,属性槽,0#空\\\",\\\"Slot,附魔槽,0#空\\\",\\\"Slot,属性槽,0#空\\\",\\\"Slot,附魔槽,0#空\\\",\\\"Slot,属性槽,0#空\\\",\\\"Slot,附魔槽,0#空\\\",\\\"Slot,属性槽,0#空\\\",\\\"Slot,附魔槽,0#空\\\",\\\"Slot,属性槽,0#空\\\"]\"},\"Quality\":{\"type\":\"int\",\"value\":0},\"BindName\":{\"type\":\"string\",\"value\":\"1778586262\"},\"LevelData\":{\"type\":\"string\",\"value\":\"[]\"},\"SelectData\":{\"type\":\"string\",\"value\":\"[]\"},\"BZ\":{\"type\":\"string\",\"value\":\"[\\\"魂锁珠\\\",\\\"永恒珠\\\"]\"}}},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"平凡\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"的\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"blue\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"underlined\\\":true,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"朴素之靴\\\"}],\\\"text\\\":\\\"\\\"}\"},\"Lore\":{\"type\":\"list\",\"value\":{\"type\":\"string\",\"value\":[\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"坠击 III\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":true,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":false,\\\"color\\\":\\\"light_purple\\\",\\\"text\\\":\\\" 绑定 \\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"属于 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"1778586262 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"玩家\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"死亡不会掉落\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":true,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":false,\\\"color\\\":\\\"light_purple\\\",\\\"text\\\":\\\" 淬炼 \\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"零星淬炼\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"[\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"color\\\":\\\"red\\\",\\\"text\\\":\\\"魂锁珠\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"]\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"[\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"color\\\":\\\"red\\\",\\\"text\\\":\\\"永恒珠\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"]\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"[\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"无宝珠\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"]\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":true,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":false,\\\"color\\\":\\\"light_purple\\\",\\\"text\\\":\\\" 属性 \\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\" 暂无属性\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":true,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":false,\\\"color\\\":\\\"light_purple\\\",\\\"text\\\":\\\" 宝石 \\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"blue\\\",\\\"text\\\":\\\"○ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"<\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"aqua\\\",\\\"text\\\":\\\"附魔槽\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\">\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"○ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"<\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"属性槽\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\">\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"blue\\\",\\\"text\\\":\\\"○ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"<\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"aqua\\\",\\\"text\\\":\\\"附魔槽\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\">\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"○ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"<\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"属性槽\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\">\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"blue\\\",\\\"text\\\":\\\"○ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"<\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"aqua\\\",\\\"text\\\":\\\"附魔槽\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\">\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"○ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"<\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"属性槽\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\">\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"blue\\\",\\\"text\\\":\\\"○ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"<\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"aqua\\\",\\\"text\\\":\\\"附魔槽\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\">\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"○ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"<\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"属性槽\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\">\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"blue\\\",\\\"text\\\":\\\"○ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"<\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"aqua\\\",\\\"text\\\":\\\"附魔槽\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\">\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"○ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"<\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"属性槽\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\">\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":true,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":false,\\\"color\\\":\\\"light_purple\\\",\\\"text\\\":\\\" 品质 \\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\" 防御力 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"50.0\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\" 生命值 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"100.0\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\" 暴击抵抗 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"10.0\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\" 暴伤抵抗 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"15.0\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\" 移动速度 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"10.0\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":true,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一一一一一一一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\" ▣ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"高阶附魔槽位: \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"8\\\"}],\\\"text\\\":\\\"\\\"}\"]}}}},\"slots\":{\"type\":\"int\",\"value\":1},\"ae_enchantment;坠击\":{\"type\":\"int\",\"value\":3}}}","parsed":{"item_name":"diamond_boots","display_name":"<span class=\"\"><span class=\"color-white\">平凡</span><span class=\"color-gray\">的</span><span class=\"color-blue\"> </span><span class=\"underlined color-white\">朴素之靴</span></span>","lore_text":"坠击 III\n一一一一 绑定 一一一一\n 属于 1778586262 玩家\n 死亡不会掉落\n一一一一 淬炼 一一一一\n 零星淬炼\n [魂锁珠][永恒珠][无宝珠]\n一一一一 属性 一一一一\n 暂无属性\n一一一一 宝石 一一一一\n ○ <附魔槽>\n ○ <属性槽>\n ○ <附魔槽>\n ○ <属性槽>\n ○ <附魔槽>\n ○ <属性槽>\n ○ <附魔槽>\n ○ <属性槽>\n ○ <附魔槽>\n ○ <属性槽>\n一一一一 品质 一一一一\n 防御力 50.0\n 生命值 100.0\n 暴击抵抗 10.0\n 暴伤抵抗 15.0\n 移动速度 10.0\n一一一一一一一一一一一\n ▣ 高阶附魔槽位: 8","cldata_slots":"[\n  {\n    \"type\": \"附魔槽\",\n    \"value\": \"0#空\\\",\\\"Slot,属性槽,0#空\\\",\\\"Slot,附魔槽,0#空\\\",\\\"Slot,属性槽,0#空\\\",\\\"Slot,附魔槽,0#空\\\",\\\"Slot,属性槽,0#空\\\",\\\"Slot,附魔槽,0#空\\\",\\\"Slot,属性槽,0#空\\\",\\\"Slot,附魔槽,0#空\\\",\\\"Slot,属性槽,0#空\\\"\"\n  }\n]"}},{"slot":11,"parsed":{"item_name":"empty"}},{"slot":12,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"CMIGUIIcon\":{\"type\":\"string\",\"value\":\"LIProtection\"},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"}],\\\"text\\\":\\\"\\\"}\"}}}}}","parsed":{"item_name":"black_stained_glass_pane","display_name":"<span class=\"\"><span class=\"\"> </span></span>","lore_text":null,"cldata_slots":null}},{"slot":13,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"CMIGUIIcon\":{\"type\":\"string\",\"value\":\"LIProtection\"},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"}],\\\"text\\\":\\\"\\\"}\"}}}}}","parsed":{"item_name":"black_stained_glass_pane","display_name":"<span class=\"\"><span class=\"\"> </span></span>","lore_text":null,"cldata_slots":null}},{"slot":14,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"CMIGUIIcon\":{\"type\":\"string\",\"value\":\"LIProtection\"},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"}],\\\"text\\\":\\\"\\\"}\"}}}}}","parsed":{"item_name":"black_stained_glass_pane","display_name":"<span class=\"\"><span class=\"\"> </span></span>","lore_text":null,"cldata_slots":null}},{"slot":15,"parsed":{"item_name":"empty"}},{"slot":16,"parsed":{"item_name":"empty"}},{"slot":17,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"CMIGUIIcon\":{\"type\":\"string\",\"value\":\"LIProtection\"},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"}],\\\"text\\\":\\\"\\\"}\"}}}}}","parsed":{"item_name":"black_stained_glass_pane","display_name":"<span class=\"\"><span class=\"\"> </span></span>","lore_text":null,"cldata_slots":null}},{"slot":18,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"PublicBukkitValues\":{\"type\":\"compound\",\"value\":{\"excellentcrates:crate_key.id\":{\"type\":\"string\",\"value\":\"yunx\"}}},\"Enchantments\":{\"type\":\"list\",\"value\":{\"type\":\"compound\",\"value\":[{\"id\":{\"type\":\"string\",\"value\":\"minecraft:feather_falling\"},\"lvl\":{\"type\":\"short\",\"value\":1}}]}},\"HideFlags\":{\"type\":\"int\",\"value\":65},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"▸ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"陨星抽奖箱钥匙\\\"}],\\\"text\\\":\\\"\\\"}\"},\"Lore\":{\"type\":\"list\",\"value\":{\"type\":\"string\",\"value\":[\"{\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"▌ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"单车变跑车，风浪越大，鱼儿越贵\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"▌ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"本道具可以打开陨星抽奖箱\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"► \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"右键抽奖箱 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"▏ 开抽\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"像素绑定\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§-\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"@1778586262\\\"}],\\\"text\\\":\\\"\\\"}\"]}}}}}}","parsed":{"item_name":"netherite_ingot","display_name":"<span class=\"\"><span class=\"color-green\">▸ </span><span class=\"color-gray\">陨星抽奖箱钥匙</span></span>","lore_text":" ▌ 单车变跑车，风浪越大，鱼儿越贵\n ▌ 本道具可以打开陨星抽奖箱\n ► 右键抽奖箱 ▏ 开抽\n像素绑定\n§-@1778586262","cldata_slots":null}},{"slot":19,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"PublicBukkitValues\":{\"type\":\"compound\",\"value\":{\"excellentcrates:crate_key.id\":{\"type\":\"string\",\"value\":\"vote\"}}},\"Enchantments\":{\"type\":\"list\",\"value\":{\"type\":\"compound\",\"value\":[{\"id\":{\"type\":\"string\",\"value\":\"minecraft:feather_falling\"},\"lvl\":{\"type\":\"short\",\"value\":1}}]}},\"HideFlags\":{\"type\":\"int\",\"value\":65},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"▸ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"活动抽奖箱钥匙\\\"}],\\\"text\\\":\\\"\\\"}\"},\"Lore\":{\"type\":\"list\",\"value\":{\"type\":\"string\",\"value\":[\"{\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"▌ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"单车变跑车，风浪越大，鱼儿越贵\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"▌ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"本道具可以打开活动抽奖箱\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"► \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"右键抽奖箱 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"▏ 开抽\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"像素绑定\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§-\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"@1778586262\\\"}],\\\"text\\\":\\\"\\\"}\"]}}}}}}","parsed":{"item_name":"yellow_dye","display_name":"<span class=\"\"><span class=\"color-green\">▸ </span><span class=\"color-gray\">活动抽奖箱钥匙</span></span>","lore_text":" ▌ 单车变跑车，风浪越大，鱼儿越贵\n ▌ 本道具可以打开活动抽奖箱\n ► 右键抽奖箱 ▏ 开抽\n像素绑定\n§-@1778586262","cldata_slots":null}},{"slot":20,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"PublicBukkitValues\":{\"type\":\"compound\",\"value\":{\"excellentcrates:crate_key.id\":{\"type\":\"string\",\"value\":\"jinbi\"}}},\"Enchantments\":{\"type\":\"list\",\"value\":{\"type\":\"compound\",\"value\":[{\"id\":{\"type\":\"string\",\"value\":\"minecraft:feather_falling\"},\"lvl\":{\"type\":\"short\",\"value\":1}}]}},\"HideFlags\":{\"type\":\"int\",\"value\":65},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"▸ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"金币抽奖箱钥匙\\\"}],\\\"text\\\":\\\"\\\"}\"},\"Lore\":{\"type\":\"list\",\"value\":{\"type\":\"string\",\"value\":[\"{\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"▌ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"单车变跑车，风浪越大，鱼儿越贵\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"▌ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"本道具可以打开金币抽奖箱\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"► \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"右键抽奖箱 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"▏ 开抽\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"像素绑定\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§-\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"@1778586262\\\"}],\\\"text\\\":\\\"\\\"}\"]}}}}}}","parsed":{"item_name":"gold_ingot","display_name":"<span class=\"\"><span class=\"color-green\">▸ </span><span class=\"color-gray\">金币抽奖箱钥匙</span></span>","lore_text":" ▌ 单车变跑车，风浪越大，鱼儿越贵\n ▌ 本道具可以打开金币抽奖箱\n ► 右键抽奖箱 ▏ 开抽\n像素绑定\n§-@1778586262","cldata_slots":null}},{"slot":21,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"PublicBukkitValues\":{\"type\":\"compound\",\"value\":{\"excellentcrates:crate_key.id\":{\"type\":\"string\",\"value\":\"chongwu\"}}},\"Enchantments\":{\"type\":\"list\",\"value\":{\"type\":\"compound\",\"value\":[{\"id\":{\"type\":\"string\",\"value\":\"minecraft:feather_falling\"},\"lvl\":{\"type\":\"short\",\"value\":1}}]}},\"HideFlags\":{\"type\":\"int\",\"value\":65},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"▸ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"变形抽奖箱钥匙\\\"}],\\\"text\\\":\\\"\\\"}\"},\"Lore\":{\"type\":\"list\",\"value\":{\"type\":\"string\",\"value\":[\"{\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"▌ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"单车变跑车，风浪越大，鱼儿越贵\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"▌ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"本道具可以打开变形抽奖箱\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"► \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"右键抽奖箱 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"▏ 开抽\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"像素绑定\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§-\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"@1778586262\\\"}],\\\"text\\\":\\\"\\\"}\"]}}}}}}","parsed":{"item_name":"sugar","display_name":"<span class=\"\"><span class=\"color-green\">▸ </span><span class=\"color-gray\">变形抽奖箱钥匙</span></span>","lore_text":" ▌ 单车变跑车，风浪越大，鱼儿越贵\n ▌ 本道具可以打开变形抽奖箱\n ► 右键抽奖箱 ▏ 开抽\n像素绑定\n§-@1778586262","cldata_slots":null}},{"slot":22,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"PublicBukkitValues\":{\"type\":\"compound\",\"value\":{\"excellentcrates:crate_key.id\":{\"type\":\"string\",\"value\":\"fm\"}}},\"Enchantments\":{\"type\":\"list\",\"value\":{\"type\":\"compound\",\"value\":[{\"id\":{\"type\":\"string\",\"value\":\"minecraft:feather_falling\"},\"lvl\":{\"type\":\"short\",\"value\":1}}]}},\"HideFlags\":{\"type\":\"int\",\"value\":65},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"▸ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"附魔宝石抽奖箱钥匙\\\"}],\\\"text\\\":\\\"\\\"}\"},\"Lore\":{\"type\":\"list\",\"value\":{\"type\":\"string\",\"value\":[\"{\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"▌ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"单车变跑车，风浪越大，鱼儿越贵\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"▌ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"本道具可以打开附魔宝石抽奖箱\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"► \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"右键抽奖箱 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"▏ 开抽\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"像素绑定\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§-\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"@1778586262\\\"}],\\\"text\\\":\\\"\\\"}\"]}}}}}}","parsed":{"item_name":"cyan_dye","display_name":"<span class=\"\"><span class=\"color-green\">▸ </span><span class=\"color-gray\">附魔宝石抽奖箱钥匙</span></span>","lore_text":" ▌ 单车变跑车，风浪越大，鱼儿越贵\n ▌ 本道具可以打开附魔宝石抽奖箱\n ► 右键抽奖箱 ▏ 开抽\n像素绑定\n§-@1778586262","cldata_slots":null}},{"slot":23,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"PublicBukkitValues\":{\"type\":\"compound\",\"value\":{\"excellentcrates:crate_key.id\":{\"type\":\"string\",\"value\":\"sx\"}}},\"Enchantments\":{\"type\":\"list\",\"value\":{\"type\":\"compound\",\"value\":[{\"id\":{\"type\":\"string\",\"value\":\"minecraft:feather_falling\"},\"lvl\":{\"type\":\"short\",\"value\":1}}]}},\"HideFlags\":{\"type\":\"int\",\"value\":65},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"▸ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"属性宝石抽奖箱钥匙\\\"}],\\\"text\\\":\\\"\\\"}\"},\"Lore\":{\"type\":\"list\",\"value\":{\"type\":\"string\",\"value\":[\"{\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"▌ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"单车变跑车，风浪越大，鱼儿越贵\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"▌ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"本道具可以打开属性宝石抽奖箱\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"► \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"右键抽奖箱 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"▏ 开抽\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"像素绑定\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§-\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"@1778586262\\\"}],\\\"text\\\":\\\"\\\"}\"]}}}}}}","parsed":{"item_name":"lime_dye","display_name":"<span class=\"\"><span class=\"color-green\">▸ </span><span class=\"color-gray\">属性宝石抽奖箱钥匙</span></span>","lore_text":" ▌ 单车变跑车，风浪越大，鱼儿越贵\n ▌ 本道具可以打开属性宝石抽奖箱\n ► 右键抽奖箱 ▏ 开抽\n像素绑定\n§-@1778586262","cldata_slots":null}},{"slot":24,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"PublicBukkitValues\":{\"type\":\"compound\",\"value\":{\"excellentcrates:crate_key.id\":{\"type\":\"string\",\"value\":\"ancient\"}}},\"Enchantments\":{\"type\":\"list\",\"value\":{\"type\":\"compound\",\"value\":[{\"id\":{\"type\":\"string\",\"value\":\"minecraft:feather_falling\"},\"lvl\":{\"type\":\"short\",\"value\":1}}]}},\"HideFlags\":{\"type\":\"int\",\"value\":65},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"▸ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"远古抽奖箱钥匙\\\"}],\\\"text\\\":\\\"\\\"}\"},\"Lore\":{\"type\":\"list\",\"value\":{\"type\":\"string\",\"value\":[\"{\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"▌ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"单车变跑车，风浪越大，鱼儿越贵\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"▌ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"本道具可以打开远古抽奖箱\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"► \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"右键抽奖箱 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"▏ 开抽\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"像素绑定\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§-\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"@1778586262\\\"}],\\\"text\\\":\\\"\\\"}\"]}}}}}}","parsed":{"item_name":"orange_dye","display_name":"<span class=\"\"><span class=\"color-green\">▸ </span><span class=\"color-gray\">远古抽奖箱钥匙</span></span>","lore_text":" ▌ 单车变跑车，风浪越大，鱼儿越贵\n ▌ 本道具可以打开远古抽奖箱\n ► 右键抽奖箱 ▏ 开抽\n像素绑定\n§-@1778586262","cldata_slots":null}},{"slot":25,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"PublicBukkitValues\":{\"type\":\"compound\",\"value\":{\"excellentcrates:crate_key.id\":{\"type\":\"string\",\"value\":\"fuwen\"}}},\"Enchantments\":{\"type\":\"list\",\"value\":{\"type\":\"compound\",\"value\":[{\"id\":{\"type\":\"string\",\"value\":\"minecraft:feather_falling\"},\"lvl\":{\"type\":\"short\",\"value\":1}}]}},\"HideFlags\":{\"type\":\"int\",\"value\":65},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"▸ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"符文抽奖箱钥匙\\\"}],\\\"text\\\":\\\"\\\"}\"},\"Lore\":{\"type\":\"list\",\"value\":{\"type\":\"string\",\"value\":[\"{\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"▌ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"单车变跑车，风浪越大，鱼儿越贵\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"▌ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"本道具可以打开符文抽奖箱\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"► \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"右键抽奖箱 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"▏ 开抽\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"像素绑定\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§-\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"@1778586262\\\"}],\\\"text\\\":\\\"\\\"}\"]}}}}}}","parsed":{"item_name":"ink_sac","display_name":"<span class=\"\"><span class=\"color-green\">▸ </span><span class=\"color-gray\">符文抽奖箱钥匙</span></span>","lore_text":" ▌ 单车变跑车，风浪越大，鱼儿越贵\n ▌ 本道具可以打开符文抽奖箱\n ► 右键抽奖箱 ▏ 开抽\n像素绑定\n§-@1778586262","cldata_slots":null}},{"slot":26,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"PublicBukkitValues\":{\"type\":\"compound\",\"value\":{\"excellentcrates:crate_key.id\":{\"type\":\"string\",\"value\":\"wanou\"}}},\"Enchantments\":{\"type\":\"list\",\"value\":{\"type\":\"compound\",\"value\":[{\"id\":{\"type\":\"string\",\"value\":\"minecraft:feather_falling\"},\"lvl\":{\"type\":\"short\",\"value\":1}}]}},\"HideFlags\":{\"type\":\"int\",\"value\":65},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"▸ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"玩偶实体币\\\"}],\\\"text\\\":\\\"\\\"}\"},\"Lore\":{\"type\":\"list\",\"value\":{\"type\":\"string\",\"value\":[\"{\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"▌ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"可以抓可爱的玩偶\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"► \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"右键娃娃机 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"▏ 开抓\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"像素绑定\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§-\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"@1778586262\\\"}],\\\"text\\\":\\\"\\\"}\"]}}}}}}","parsed":{"item_name":"slime_ball","display_name":"<span class=\"\"><span class=\"color-green\">▸ </span><span class=\"color-gray\">玩偶实体币</span></span>","lore_text":" ▌ 可以抓可爱的玩偶\n ► 右键娃娃机 ▏ 开抓\n像素绑定\n§-@1778586262","cldata_slots":null}},{"slot":27,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"CLS\":{\"type\":\"string\",\"value\":\"高等\"},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"高等淬炼宝石\\\"}],\\\"text\\\":\\\"\\\"}\"},\"Lore\":{\"type\":\"list\",\"value\":{\"type\":\"string\",\"value\":[\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"用法：\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"和装备一起放入铁砧\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"作用：\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"淬炼装备\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"说明：\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"  -\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"高等淬炼宝石,中幅增加淬炼成功率\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"  -\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"淬炼成功,装备会升星\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"  -\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"red\\\",\\\"text\\\":\\\"淬炼失败也会掉落一颗星\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"  -\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"淬炼升星可提升护甲、武器、工具的附魔\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"  -\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"6/9/12/15/18星套均有特效和药效加成\\\"}],\\\"text\\\":\\\"\\\"}\"]}}}},\"Enchantments\":{\"type\":\"list\",\"value\":{\"type\":\"compound\",\"value\":[{\"id\":{\"type\":\"string\",\"value\":\"minecraft:respiration\"},\"lvl\":{\"type\":\"short\",\"value\":1}}]}}}}","parsed":{"item_name":"coal","display_name":"<span class=\"\"><span class=\"bold color-gold\">高等淬炼宝石</span></span>","lore_text":"用法：和装备一起放入铁砧\n作用：淬炼装备\n说明：\n  -高等淬炼宝石,中幅增加淬炼成功率\n  -淬炼成功,装备会升星\n  -淬炼失败也会掉落一颗星\n  -淬炼升星可提升护甲、武器、工具的附魔\n  -6/9/12/15/18星套均有特效和药效加成","cldata_slots":null}},{"slot":28,"parsed":{"item_name":"empty"}},{"slot":29,"parsed":{"item_name":"empty"}},{"slot":30,"parsed":{"item_name":"empty"}},{"slot":31,"parsed":{"item_name":"empty"}},{"slot":32,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"itemsadder\":{\"type\":\"compound\",\"value\":{\"id\":{\"type\":\"string\",\"value\":\"gigantic_cabbage\"},\"namespace\":{\"type\":\"string\",\"value\":\"customcrops\"}}},\"CustomModelData\":{\"type\":\"int\",\"value\":10055},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"巨大卷心菜\\\"}],\\\"text\\\":\\\"\\\"}\"}}}}}","parsed":{"item_name":"paper","display_name":"<span class=\"\"><span class=\"color-white\">巨大卷心菜</span></span>","lore_text":null,"cldata_slots":null}},{"slot":33,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"itemsadder\":{\"type\":\"compound\",\"value\":{\"id\":{\"type\":\"string\",\"value\":\"gigantic_pineapple\"},\"namespace\":{\"type\":\"string\",\"value\":\"customcrops\"}}},\"CustomModelData\":{\"type\":\"int\",\"value\":10129},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"巨大菠萝\\\"}],\\\"text\\\":\\\"\\\"}\"}}}}}","parsed":{"item_name":"paper","display_name":"<span class=\"\"><span class=\"color-white\">巨大菠萝</span></span>","lore_text":null,"cldata_slots":null}},{"slot":34,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"itemsadder\":{\"type\":\"compound\",\"value\":{\"id\":{\"type\":\"string\",\"value\":\"gigantic_red_cabbage\"},\"namespace\":{\"type\":\"string\",\"value\":\"customcrops\"}}},\"CustomModelData\":{\"type\":\"int\",\"value\":10224},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"巨大红叶卷心菜\\\"}],\\\"text\\\":\\\"\\\"}\"}}}}}","parsed":{"item_name":"paper","display_name":"<span class=\"\"><span class=\"color-white\">巨大红叶卷心菜</span></span>","lore_text":null,"cldata_slots":null}},{"slot":35,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"itemsadder\":{\"type\":\"compound\",\"value\":{\"id\":{\"type\":\"string\",\"value\":\"gigantic_tomato\"},\"namespace\":{\"type\":\"string\",\"value\":\"customcrops\"}}},\"CustomModelData\":{\"type\":\"int\",\"value\":10108},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"巨大番茄\\\"}],\\\"text\\\":\\\"\\\"}\"}}}}}","parsed":{"item_name":"paper","display_name":"<span class=\"\"><span class=\"color-white\">巨大番茄</span></span>","lore_text":null,"cldata_slots":null}},{"slot":36,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"itemsadder\":{\"type\":\"compound\",\"value\":{\"id\":{\"type\":\"string\",\"value\":\"newyear_2024_animated-hat\"},\"namespace\":{\"type\":\"string\",\"value\":\"elitecreatures\"}}},\"CustomModelData\":{\"type\":\"int\",\"value\":10020},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"2026年新年头套\\\"}],\\\"text\\\":\\\"\\\"}\"},\"Lore\":{\"type\":\"list\",\"value\":{\"type\":\"string\",\"value\":[\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"像素绑定\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§-\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"@1778586262\\\"}],\\\"text\\\":\\\"\\\"}\"]}}}}}}","parsed":{"item_name":"kelp","display_name":"<span class=\"\"><span class=\"color-yellow\">2026年新年头套</span></span>","lore_text":"\n像素绑定\n§-@1778586262","cldata_slots":null}},{"slot":37,"parsed":{"item_name":"empty"}},{"slot":38,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"shift-click\":{\"type\":\"string\",\"value\":\"false\"},\"HideFlags\":{\"type\":\"int\",\"value\":35},\"groupType\":{\"type\":\"string\",\"value\":\"LEGENDARY\"},\"CustomModelData\":{\"type\":\"int\",\"value\":0},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"[\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"传说\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"] \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"魔法粉尘\\\"}],\\\"text\\\":\\\"\\\"}\"},\"Lore\":{\"type\":\"list\",\"value\":{\"type\":\"string\",\"value\":[\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"+10% 成功几率\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"适用于任意 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"传说 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"附魔书\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"以增加它的成功几率 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"10%\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\" ▣ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"将其拖到任意 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"装备 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"上右键以使用\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"\\\"}],\\\"text\\\":\\\"\\\"}\"]}}}},\"magic\":{\"type\":\"string\",\"value\":\"10\"}}}","parsed":{"item_name":"sugar","display_name":"<span class=\"\"><span class=\"color-white\">[</span><span class=\"color-gold\">传说</span><span class=\"color-white\">] </span><span class=\"color-white\">魔法粉尘</span></span>","lore_text":"\n+10% 成功几率\n适用于任意 传说 附魔书\n以增加它的成功几率 10%\n\n ▣ 将其拖到任意 装备 上右键以使用\n","cldata_slots":null}},{"slot":39,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"HideFlags\":{\"type\":\"int\",\"value\":35},\"groupType\":{\"type\":\"string\",\"value\":\"LEGENDARY\"},\"ae_scroll\":{\"type\":\"string\",\"value\":\"true\"},\"CustomModelData\":{\"type\":\"int\",\"value\":0},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"[\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"传说\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"] \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"随机卷轴\\\"}],\\\"text\\\":\\\"\\\"}\"},\"Lore\":{\"type\":\"list\",\"value\":{\"type\":\"string\",\"value\":[\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"这是一本 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"[\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"传说\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"] \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"附魔书\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"适用于任意 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"传说 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"附魔书\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"以重新选出它的成功几率和失败几率\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\" ▣ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"将其拖到任意 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"附魔书 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"上右键以使用\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"\\\"}],\\\"text\\\":\\\"\\\"}\"]}}}}}}","parsed":{"item_name":"paper","display_name":"<span class=\"\"><span class=\"color-white\">[</span><span class=\"color-gold\">传说</span><span class=\"color-white\">] </span><span class=\"color-white\">随机卷轴</span></span>","lore_text":"\n这是一本 [传说] 附魔书\n适用于任意 传说 附魔书\n以重新选出它的成功几率和失败几率\n\n ▣ 将其拖到任意 附魔书 上右键以使用\n","cldata_slots":null}},{"slot":40,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"ae_book_level\":{\"type\":\"int\",\"value\":1},\"ae_book\":{\"type\":\"string\",\"value\":\"致盲\"},\"CustomModelData\":{\"type\":\"int\",\"value\":0},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"高阶附魔书：\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"aqua\\\",\\\"text\\\":\\\"致盲\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\" [\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"red\\\",\\\"text\\\":\\\"I\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"]\\\"}],\\\"text\\\":\\\"\\\"}\"},\"Lore\":{\"type\":\"list\",\"value\":{\"type\":\"string\",\"value\":[\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"成功几率：\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"75% \\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"失败几率：\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"red\\\",\\\"text\\\":\\\"25% \\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"附魔介绍：\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"概率对敌方造成失明效果\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"附魔需求装备：\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"Sword\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\" ▣ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"将其拖到任意 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"指定装备 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"上右键以使用\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"\\\"}],\\\"text\\\":\\\"\\\"}\"]}}}},\"ae_book_success\":{\"type\":\"int\",\"value\":75},\"ae_book_failure\":{\"type\":\"int\",\"value\":25}}}","parsed":{"item_name":"enchanted_book","display_name":"<span class=\"\"><span class=\"color-yellow\">高阶附魔书：</span><span class=\"color-aqua\">致盲</span><span class=\"color-white\"> [</span><span class=\"color-red\">I</span><span class=\"color-white\">]</span></span>","lore_text":"\n成功几率：75% \n失败几率：25% \n\n附魔介绍：\n概率对敌方造成失明效果\n\n附魔需求装备：Sword\n\n ▣ 将其拖到任意 指定装备 上右键以使用\n","cldata_slots":null}},{"slot":41,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"ae_book_level\":{\"type\":\"int\",\"value\":3},\"ae_book\":{\"type\":\"string\",\"value\":\"磁力拉扯\"},\"CustomModelData\":{\"type\":\"int\",\"value\":0},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"高阶附魔书：\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"aqua\\\",\\\"text\\\":\\\"磁力拉扯\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\" [\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"red\\\",\\\"text\\\":\\\"III\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"]\\\"}],\\\"text\\\":\\\"\\\"}\"},\"Lore\":{\"type\":\"list\",\"value\":{\"type\":\"string\",\"value\":[\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"成功几率：\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"24% \\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"失败几率：\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"red\\\",\\\"text\\\":\\\"76% \\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"附魔介绍：\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"将玩家拉向你\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"附魔需求装备：\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"Sword\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\" ▣ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"将其拖到任意 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"指定装备 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"上右键以使用\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"\\\"}],\\\"text\\\":\\\"\\\"}\"]}}}},\"ae_book_success\":{\"type\":\"int\",\"value\":24},\"ae_book_failure\":{\"type\":\"int\",\"value\":76}}}","parsed":{"item_name":"enchanted_book","display_name":"<span class=\"\"><span class=\"color-yellow\">高阶附魔书：</span><span class=\"color-aqua\">磁力拉扯</span><span class=\"color-white\"> [</span><span class=\"color-red\">III</span><span class=\"color-white\">]</span></span>","lore_text":"\n成功几率：24% \n失败几率：76% \n\n附魔介绍：\n将玩家拉向你\n\n附魔需求装备：Sword\n\n ▣ 将其拖到任意 指定装备 上右键以使用\n","cldata_slots":null}},{"slot":42,"snbt":"{}","parsed":{"item_name":"stick","display_name":null,"lore_text":null,"cldata_slots":null}},{"slot":43,"snbt":"{}","parsed":{"item_name":"diamond","display_name":null,"lore_text":null,"cldata_slots":null}},{"slot":44,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"新手装备\\\"}],\\\"text\\\":\\\"\\\"}\"}}}}}","parsed":{"item_name":"shulker_box","display_name":"<span class=\"\"><span class=\"color-yellow\">新手装备</span></span>","lore_text":"因技术原因，暂无法查看内容","cldata_slots":null}},{"slot":45,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"RepairCost\":{\"type\":\"int\",\"value\":1},\"Enchantments\":{\"type\":\"list\",\"value\":{\"type\":\"compound\",\"value\":[{\"id\":{\"type\":\"string\",\"value\":\"minecraft:silk_touch\"},\"lvl\":{\"type\":\"short\",\"value\":1}}]}},\"Damage\":{\"type\":\"int\",\"value\":832}}}","parsed":{"item_name":"diamond_pickaxe","display_name":null,"lore_text":null,"cldata_slots":null}},{"slot":46,"parsed":{"item_name":"empty"}},{"slot":47,"parsed":{"item_name":"empty"}},{"slot":48,"parsed":{"item_name":"empty"}},{"slot":49,"parsed":{"item_name":"empty"}},{"slot":50,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"MYTHIC_TYPE\":{\"type\":\"string\",\"value\":\"魂引之灯\"},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"魂引之灯\\\"}],\\\"text\\\":\\\"\\\"}\"},\"Lore\":{\"type\":\"list\",\"value\":{\"type\":\"string\",\"value\":[\"{\\\"extra\\\":[{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":true,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":false,\\\"color\\\":\\\"light_purple\\\",\\\"text\\\":\\\" 技能 \\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\" ▣ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"右键：命中对手后,让对手的攻击变成攻击自己\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":true,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一一一一一一一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"像素绑定\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§-\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"@1778586262\\\"}],\\\"text\\\":\\\"\\\"}\"]}}}},\"SkullOwner\":{\"type\":\"compound\",\"value\":{\"Properties\":{\"type\":\"compound\",\"value\":{\"textures\":{\"type\":\"list\",\"value\":{\"type\":\"compound\",\"value\":[{\"Value\":{\"type\":\"string\",\"value\":\"eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNmMwOTIyMDA2ZDhlMDdlMmIzNmViNGE1NTA0YzkxYjUxZjNjYmZkMTBhYTQ0ZGFlYzc5YTJmYTljNGFjOTE1YSJ9fX0=\"}}]}}}},\"Id\":{\"type\":\"intArray\",\"value\":[0,0,0,0]}}}}}","parsed":{"item_name":"player_head","display_name":"<span class=\"\"><span class=\"color-yellow\">魂引之灯</span></span>","lore_text":"一一一一 技能 一一一一\n ▣ 右键：命中对手后,让对手的攻击变成攻击自己\n一一一一一一一一一一一\n像素绑定\n§-@1778586262","cldata_slots":null}},{"slot":51,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"弹力球\\\"}],\\\"text\\\":\\\"\\\"}\"},\"Lore\":{\"type\":\"list\",\"value\":{\"type\":\"string\",\"value\":[\"{\\\"extra\\\":[{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":true,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":false,\\\"color\\\":\\\"light_purple\\\",\\\"text\\\":\\\" 技能 \\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\" ▣ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"右键：超级弹跳\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":true,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一一一一一一一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"像素绑定\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§-\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"@1778586262\\\"}],\\\"text\\\":\\\"\\\"}\"]}}}},\"MYTHIC_TYPE\":{\"type\":\"string\",\"value\":\"弹力球\"}}}","parsed":{"item_name":"slime_ball","display_name":"<span class=\"\"><span class=\"color-green\">弹力球</span></span>","lore_text":"一一一一 技能 一一一一\n ▣ 右键：超级弹跳\n一一一一一一一一一一一\n像素绑定\n§-@1778586262","cldata_slots":null}},{"slot":52,"snbt":"{}","parsed":{"item_name":"golden_carrot","display_name":null,"lore_text":null,"cldata_slots":null}},{"slot":53,"snbt":"{}","parsed":{"item_name":"golden_apple","display_name":null,"lore_text":null,"cldata_slots":null}}];
+        
+        // 工具提示显示
+        function showTooltip(event, slotNumber) {
+            const tooltip = document.getElementById('tooltip');
+            // 根据槽位编号查找物品数据
+            const item = itemsData.find(item => item.slot === parseInt(slotNumber));
+            
+            if (!item || !item.parsed) return;
+            
+            let tooltipHTML = '';
+            
+            // 显示物品名称
+            if (item.parsed && item.parsed.display_name) {
+                tooltipHTML += '<div class="tooltip-name">' + item.parsed.display_name + '</div>';
+            } else if (item.parsed && item.parsed.item_name) {
+                tooltipHTML += '<div class="tooltip-name">' + item.parsed.item_name + '</div>';
+            }
+            
+            // 显示Lore信息
+            if (item.parsed && item.parsed.lore_text) {
+                tooltipHTML += '<div class="tooltip-lore">' + item.parsed.lore_text + '</div>';
+            }
+            
+            if (tooltipHTML) {
+                tooltip.innerHTML = tooltipHTML;
+                tooltip.style.display = 'block';
+                tooltip.style.left = (event.pageX + 10) + 'px';
+                tooltip.style.top = (event.pageY + 10) + 'px';
+            }
+        }
+        
+        // 隐藏工具提示
+        function hideTooltip() {
+            const tooltip = document.getElementById('tooltip');
+            tooltip.style.display = 'none';
+        }
+        
+        // 显示左键菜单
+        function showContextMenu(event, slotNumber) {
+            event.preventDefault();
+            event.stopPropagation();
+            
+            const contextMenu = document.getElementById('contextMenu');
+            // 根据槽位编号查找物品数据
+            const item = itemsData.find(item => item.slot === parseInt(slotNumber));
+            
+            if (!item) {
+                console.log('未找到物品数据，槽位:', slotNumber);
+                return;
+            }
+            
+            let menuHTML = '';
+            
+            // 如果有CLData，显示复制槽位信息和查看槽位选项
+            if (item.parsed && item.parsed.cldata_slots) {
+                menuHTML += '<div class="context-menu-item" onclick="copySlotInfo(' + slotNumber + ')">复制槽位信息</div>';
+                menuHTML += '<div class="context-menu-item" onclick="viewSlotInfo(' + slotNumber + ')">查看槽位</div>';
+            }
+            
+            // 总是显示复制SNBT信息选项
+            menuHTML += '<div class="context-menu-item" onclick="copySNBTInfo(' + slotNumber + ')">复制SNBT信息</div>';
+            
+            // 显示复制获取物品信息选项
+            menuHTML += '<div class="context-menu-item" onclick="copyGiveCommand(' + slotNumber + ')">复制获取物品信息</div>';
+            
+            contextMenu.innerHTML = menuHTML;
+            contextMenu.style.display = 'block';
+            contextMenu.style.left = event.pageX + 'px';
+            contextMenu.style.top = event.pageY + 'px';
+            
+            console.log('显示菜单，槽位:', slotNumber, '物品数据:', item);
+        }
+        
+        // 隐藏右键菜单
+        function hideContextMenu() {
+            const contextMenu = document.getElementById('contextMenu');
+            contextMenu.style.display = 'none';
+        }
+        
+        // 复制槽位信息
+        function copySlotInfo(slotNumber) {
+            const item = itemsData.find(item => item.slot === parseInt(slotNumber));
+            if (item && item.parsed && item.parsed.cldata_slots) {
+                navigator.clipboard.writeText(item.parsed.cldata_slots).then(() => {
+                    alert('槽位信息已复制到剪贴板!');
+                }).catch(err => {
+                    console.error('复制失败:', err);
+                });
+            }
+            hideContextMenu();
+        }
+        
+        // 查看槽位信息
+        function viewSlotInfo(slotNumber) {
+            const item = itemsData.find(item => item.slot === parseInt(slotNumber));
+            if (item && item.parsed && item.parsed.cldata_slots) {
+                // 尝试解析JSON格式的槽位信息
+                try {
+                    const slotInfo = JSON.parse(item.parsed.cldata_slots);
+                    alert('槽位信息:\n' + JSON.stringify(slotInfo, null, 2));
+                } catch (e) {
+                    // 如果不是JSON，直接显示原始文本
+                    alert('槽位信息:\n' + item.parsed.cldata_slots);
+                }
+            }
+            hideContextMenu();
+        }
+        
+        // 复制SNBT信息
+        function copySNBTInfo(slotNumber) {
+            const item = itemsData.find(item => item.slot === parseInt(slotNumber));
+            if (item) {
+                navigator.clipboard.writeText(item.snbt).then(() => {
+                    alert('SNBT信息已复制到剪贴板!');
+                }).catch(err => {
+                    console.error('复制失败:', err);
+                });
+            }
+            hideContextMenu();
+        }
+        
+        // 复制获取物品信息
+        function copyGiveCommand(slotNumber) {
+            const item = itemsData.find(item => item.slot === parseInt(slotNumber));
+            if (item && item.parsed) {
+                const command = `/give @p ${item.parsed.item_name}`;
+                navigator.clipboard.writeText(command).then(() => {
+                    alert('获取物品命令已复制到剪贴板!');
+                }).catch(err => {
+                    console.error('复制失败:', err);
+                });
+            }
+            hideContextMenu();
+        }
+        
+        // 图片放大功能
+        function openModal(img) {
+            const modal = document.getElementById('imageModal');
+            const modalImg = document.getElementById('modalImage');
+            modal.style.display = 'block';
+            modalImg.src = img.src;
+        }
+        
+        function closeModal() {
+            const modal = document.getElementById('imageModal');
+            modal.style.display = 'none';
+        }
+        
+        // 点击模态框外部关闭
+        window.onclick = function(event) {
+            const modal = document.getElementById('imageModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+        
+        // 页面加载完成后初始化事件监听
+        document.addEventListener('DOMContentLoaded', function() {
+            // 为所有物品图片添加事件监听
+            const images = document.querySelectorAll('.item-image');
+            images.forEach((img) => {
+                // 获取槽位编号
+                const slotNumber = img.getAttribute('data-slot');
+                
+                // 鼠标悬停显示工具提示
+                img.addEventListener('mouseenter', (e) => showTooltip(e, slotNumber));
+                img.addEventListener('mouseleave', hideTooltip);
+                
+                // 左键点击显示菜单
+                img.addEventListener('click', (e) => showContextMenu(e, slotNumber));
+                
+                // 右键点击放大图片
+                img.addEventListener('contextmenu', function(e) {
+                    e.preventDefault();
+                    openModal(this);
+                });
+            });
+            
+            // 点击页面其他地方隐藏菜单
+            document.addEventListener('click', hideContextMenu);
+        });
+        
+        // 文本样式转换函数
+        function applyTextStyles(textComponent) {
+            if (!textComponent) return '';
+            
+            let style = '';
+            let classes = '';
+            
+            if (textComponent.bold) classes += 'bold ';
+            if (textComponent.italic) classes += 'italic ';
+            if (textComponent.underlined) classes += 'underlined ';
+            if (textComponent.strikethrough) classes += 'strikethrough ';
+            if (textComponent.obfuscated) classes += 'obfuscated ';
+            if (textComponent.color) classes += 'color-' + textComponent.color + ' ';
+            
+            let content = textComponent.text || '';
+            
+            // 处理嵌套文本
+            if (textComponent.extra && Array.isArray(textComponent.extra)) {
+                content += textComponent.extra.map(extra => applyTextStyles(extra)).join('');
+            }
+            
+            return '<span class="' + classes.trim() + '">' + content + '</span>';
+        }
+    </script>
+</body>
+</html>
