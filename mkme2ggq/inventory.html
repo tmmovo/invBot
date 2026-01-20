@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>F3YANG的物品清单</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background-color: #1e1e1e;
+            color: #ffffff;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .items-grid {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .item-container {
+            background-color: #2d2d2d;
+            border-radius: 8px;
+            padding: 15px;
+            border: 1px solid #444;
+            position: relative;
+            min-height: 100px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .item-image {
+            width: 64px;
+            height: 64px;
+            cursor: pointer;
+            border-radius: 4px;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: -webkit-crisp-edges;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            transition: transform 0.2s ease;
+        }
+        
+        .item-image:hover {
+            transform: scale(1.5);
+            z-index: 10;
+            position: relative;
+        }
+        
+        .slot-info {
+            font-size: 0.8em;
+            color: #aaa;
+            margin-top: 5px;
+        }
+        
+        .item-name {
+            font-size: 12px;
+            font-weight: bold;
+            color: #fff;
+            margin-top: 5px;
+            text-align: center;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .item-lore {
+            font-size: 10px;
+            color: #ccc;
+            margin-top: 3px;
+            text-align: center;
+            max-width: 100%;
+            max-height: 40px;
+            overflow: hidden;
+            line-height: 1.2;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+        }
+        
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid #666;
+            border-radius: 4px;
+            padding: 10px;
+            z-index: 1000;
+            max-width: 300px;
+            display: none;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        
+        .tooltip-name {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .tooltip-lore {
+            font-size: 12px;
+            white-space: pre-line;
+        }
+        
+        .context-menu {
+            position: absolute;
+            background: #333;
+            border: 1px solid #666;
+            border-radius: 8px;
+            padding: 5px 0;
+            z-index: 1001;
+            display: none;
+            min-width: 150px;
+            overflow: hidden;
+        }
+        
+        .context-menu-item {
+            padding: 8px 15px;
+            cursor: pointer;
+            font-size: 12px;
+            border-radius: 6px;
+            margin: 2px 5px;
+            transition: background-color 0.2s ease;
+        }
+        
+        .context-menu-item:hover {
+            background: #13C468;
+            color: white;
+        }
+        
+        .empty-slot {
+            background-color: #1a1a1a;
+            border: 1px dashed #444;
+            color: #666;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9em;
+        }
+        
+        .image-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.8);
+        }
+        
+        .modal-content {
+            margin: auto;
+            display: block;
+            max-width: 90%;
+            max-height: 90%;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: -webkit-crisp-edges;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+        
+        .close-modal {
+            position: absolute;
+            top: 15px;
+            right: 35px;
+            color: #fff;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .close-modal:hover {
+            color: #ccc;
+        }
+        
+        .bold { font-weight: bold; }
+        .italic { font-style: italic; }
+        .underlined { text-decoration: underline; }
+        .strikethrough { text-decoration: line-through; }
+        .obfuscated { text-decoration: overline; }
+        
+        /* 颜色映射 */
+        .color-black { color: #000000; }
+        .color-dark_blue { color: #0000AA; }
+        .color-dark_green { color: #00AA00; }
+        .color-dark_aqua { color: #00AAAA; }
+        .color-dark_red { color: #AA0000; }
+        .color-dark_purple { color: #AA00AA; }
+        .color-gold { color: #FFAA00; }
+        .color-gray { color: #AAAAAA; }
+        .color-dark_gray { color: #555555; }
+        .color-blue { color: #5555FF; }
+        .color-green { color: #55FF55; }
+        .color-aqua { color: #55FFFF; }
+        .color-red { color: #FF5555; }
+        .color-light_purple { color: #FF55FF; }
+        .color-yellow { color: #FFFF55; }
+        .color-white { color: #FFFFFF; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>F3YANG的物品清单</h1>
+            <p>共 56 个物品 • 生成时间: 1/20/2026, 5:25:41 PM</p>
+            <p>声明：物品查询功能为纯公益性质，不涉及任何实体货币交易，查询结果仅供参考，不保证100%准确，请勿完全依赖，因使用本功能产生的问题，提供方不承担任何责任，该功能完全使用游戏内合法功能，不会使用其他任何开挂、作弊、 hack 等手段获取物品信息</p>
+            <p>由于其公益性质，需要收取游戏内的“金币”，但绝对不会涉及实体货币，图片加载可能会有延迟，请耐心等待，我们会慢慢改进服务体验</p>
+            <p>左键点击物品以查看详细信息</p>
+        </div>
+        <div class="items-grid" id="itemsContainer">
+            <div class="item-container">
+        <img src="images/netherite_helmet.png" class="item-image" alt="平凡的 星碎头环" data-slot="0" data-index="0">
+        <div class="slot-info">槽位: 0</div>
+    </div>
+<div class="item-container">
+        <img src="images/netherite_leggings.png" class="item-image" alt="精致的 彗星尾迹护腿" data-slot="1" data-index="1">
+        <div class="slot-info">槽位: 1</div>
+    </div>
+<div class="item-container">
+        <img src="images/blaze_rod.png" class="item-image" alt="blaze_rod" data-slot="2" data-index="2">
+        <div class="slot-info">槽位: 2</div>
+    </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 3</div>
+        </div>
+<div class="item-container">
+        <img src="images/black_stained_glass_pane.png" class="item-image" alt=" " data-slot="4" data-index="4">
+        <div class="slot-info">槽位: 4</div>
+    </div>
+<div class="item-container">
+        <img src="images/ender_chest.png" class="item-image" alt="Open ender chest" data-slot="5" data-index="5">
+        <div class="slot-info">槽位: 5</div>
+    </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 6</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 7</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 8</div>
+        </div>
+<div class="item-container">
+        <img src="images/elytra.png" class="item-image" alt="elytra" data-slot="9" data-index="9">
+        <div class="slot-info">槽位: 9</div>
+    </div>
+<div class="item-container">
+        <img src="images/netherite_boots.png" class="item-image" alt="平凡的 夜坠之靴" data-slot="10" data-index="10">
+        <div class="slot-info">槽位: 10</div>
+    </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 11</div>
+        </div>
+<div class="item-container">
+        <img src="images/black_stained_glass_pane.png" class="item-image" alt=" " data-slot="12" data-index="12">
+        <div class="slot-info">槽位: 12</div>
+    </div>
+<div class="item-container">
+        <img src="images/black_stained_glass_pane.png" class="item-image" alt=" " data-slot="13" data-index="13">
+        <div class="slot-info">槽位: 13</div>
+    </div>
+<div class="item-container">
+        <img src="images/black_stained_glass_pane.png" class="item-image" alt=" " data-slot="14" data-index="14">
+        <div class="slot-info">槽位: 14</div>
+    </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 15</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 16</div>
+        </div>
+<div class="item-container">
+        <img src="images/black_stained_glass_pane.png" class="item-image" alt=" " data-slot="17" data-index="17">
+        <div class="slot-info">槽位: 17</div>
+    </div>
+<div class="item-container">
+        <img src="images/arrow.png" class="item-image" alt="arrow" data-slot="18" data-index="18">
+        <div class="slot-info">槽位: 18</div>
+    </div>
+<div class="item-container">
+        <img src="images/diamond_axe.png" class="item-image" alt="Vote Axe" data-slot="19" data-index="19">
+        <div class="slot-info">槽位: 19</div>
+    </div>
+<div class="item-container">
+        <img src="images/diamond_shovel.png" class="item-image" alt="diamond_shovel" data-slot="20" data-index="20">
+        <div class="slot-info">槽位: 20</div>
+    </div>
+<div class="item-container">
+        <img src="images/diamond_hoe.png" class="item-image" alt="Vote Hoe" data-slot="21" data-index="21">
+        <div class="slot-info">槽位: 21</div>
+    </div>
+<div class="item-container">
+        <img src="images/stick.png" class="item-image" alt="stick" data-slot="22" data-index="22">
+        <div class="slot-info">槽位: 22</div>
+    </div>
+<div class="item-container">
+        <img src="images/sugar_cane.png" class="item-image" alt="sugar_cane" data-slot="23" data-index="23">
+        <div class="slot-info">槽位: 23</div>
+    </div>
+<div class="item-container">
+        <img src="images/beacon.png" class="item-image" alt="beacon" data-slot="24" data-index="24">
+        <div class="slot-info">槽位: 24</div>
+    </div>
+<div class="item-container">
+        <img src="images/shulker_shell.png" class="item-image" alt="shulker_shell" data-slot="25" data-index="25">
+        <div class="slot-info">槽位: 25</div>
+    </div>
+<div class="item-container">
+        <img src="images/purpur_pillar.png" class="item-image" alt="purpur_pillar" data-slot="26" data-index="26">
+        <div class="slot-info">槽位: 26</div>
+    </div>
+<div class="item-container">
+        <img src="images/purpur_block.png" class="item-image" alt="purpur_block" data-slot="27" data-index="27">
+        <div class="slot-info">槽位: 27</div>
+    </div>
+<div class="item-container">
+        <img src="images/unknown.png" class="item-image" alt="blast_furnace" data-slot="28" data-index="28">
+        <div class="slot-info">槽位: 28</div>
+    </div>
+<div class="item-container">
+        <img src="images/end_rod.png" class="item-image" alt="end_rod" data-slot="29" data-index="29">
+        <div class="slot-info">槽位: 29</div>
+    </div>
+<div class="item-container">
+        <img src="images/diamond_block.png" class="item-image" alt="diamond_block" data-slot="30" data-index="30">
+        <div class="slot-info">槽位: 30</div>
+    </div>
+<div class="item-container">
+        <img src="images/unknown.png" class="item-image" alt="ancient_debris" data-slot="31" data-index="31">
+        <div class="slot-info">槽位: 31</div>
+    </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 32</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 33</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 34</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 35</div>
+        </div>
+<div class="item-container">
+        <img src="images/diamond_pickaxe.png" class="item-image" alt="diamond_pickaxe" data-slot="36" data-index="36">
+        <div class="slot-info">槽位: 36</div>
+    </div>
+<div class="item-container">
+        <img src="images/iron_pickaxe.png" class="item-image" alt="iron_pickaxe" data-slot="37" data-index="37">
+        <div class="slot-info">槽位: 37</div>
+    </div>
+<div class="item-container">
+        <img src="images/diamond_shovel.png" class="item-image" alt="diamond_shovel" data-slot="38" data-index="38">
+        <div class="slot-info">槽位: 38</div>
+    </div>
+<div class="item-container">
+        <img src="images/iron_sword.png" class="item-image" alt="iron_sword" data-slot="39" data-index="39">
+        <div class="slot-info">槽位: 39</div>
+    </div>
+<div class="item-container">
+        <img src="images/diamond_sword.png" class="item-image" alt="diamond_sword" data-slot="40" data-index="40">
+        <div class="slot-info">槽位: 40</div>
+    </div>
+<div class="item-container">
+        <img src="images/diamond_chestplate.png" class="item-image" alt="diamond_chestplate" data-slot="41" data-index="41">
+        <div class="slot-info">槽位: 41</div>
+    </div>
+<div class="item-container">
+        <img src="images/iron_ingot.png" class="item-image" alt="iron_ingot" data-slot="42" data-index="42">
+        <div class="slot-info">槽位: 42</div>
+    </div>
+<div class="item-container">
+        <img src="images/iron_boots.png" class="item-image" alt="iron_boots" data-slot="43" data-index="43">
+        <div class="slot-info">槽位: 43</div>
+    </div>
+<div class="item-container">
+        <img src="images/gold_ingot.png" class="item-image" alt="gold_ingot" data-slot="44" data-index="44">
+        <div class="slot-info">槽位: 44</div>
+    </div>
+<div class="item-container">
+        <img src="images/netherite_sword.png" class="item-image" alt="精致的 星辉断影" data-slot="45" data-index="45">
+        <div class="slot-info">槽位: 45</div>
+    </div>
+<div class="item-container">
+        <img src="images/bow.png" class="item-image" alt="bow" data-slot="46" data-index="46">
+        <div class="slot-info">槽位: 46</div>
+    </div>
+<div class="item-container">
+        <img src="images/cooked_porkchop.png" class="item-image" alt="cooked_porkchop" data-slot="47" data-index="47">
+        <div class="slot-info">槽位: 47</div>
+    </div>
+<div class="item-container">
+        <img src="images/netherite_chestplate.png" class="item-image" alt="精致的 星陨护甲" data-slot="48" data-index="48">
+        <div class="slot-info">槽位: 48</div>
+    </div>
+<div class="item-container">
+        <img src="images/netherite_pickaxe.png" class="item-image" alt="平凡的 下界合金镐" data-slot="49" data-index="49">
+        <div class="slot-info">槽位: 49</div>
+    </div>
+<div class="item-container">
+        <img src="images/ender_pearl.png" class="item-image" alt="ender_pearl" data-slot="50" data-index="50">
+        <div class="slot-info">槽位: 50</div>
+    </div>
+<div class="item-container">
+        <img src="images/flint_and_steel.png" class="item-image" alt="flint_and_steel" data-slot="51" data-index="51">
+        <div class="slot-info">槽位: 51</div>
+    </div>
+<div class="item-container">
+        <img src="images/arrow.png" class="item-image" alt="arrow" data-slot="52" data-index="52">
+        <div class="slot-info">槽位: 52</div>
+    </div>
+<div class="item-container">
+        <img src="images/firework_rocket.png" class="item-image" alt="firework_rocket" data-slot="53" data-index="53">
+        <div class="slot-info">槽位: 53</div>
+    </div>
+        </div>
+        
+        <!-- 工具提示 -->
+        <div id="tooltip" class="tooltip"></div>
+        
+        <!-- 右键菜单 -->
+        <div id="contextMenu" class="context-menu"></div>
+        
+        <!-- 图片放大模态框 -->
+        <div id="imageModal" class="image-modal">
+            <span class="close-modal" onclick="closeModal()">&times;</span>
+            <img class="modal-content" id="modalImage">
+        </div>
+    </div>
+    
+    <script>
+        // 全局变量存储物品数据
+        const itemsData = [{"slot":0,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"RepairCost\":{\"type\":\"int\",\"value\":15},\"Enchantments\":{\"type\":\"list\",\"value\":{\"type\":\"compound\",\"value\":[{\"id\":{\"type\":\"string\",\"value\":\"minecraft:mending\"},\"lvl\":{\"type\":\"short\",\"value\":1}},{\"id\":{\"type\":\"string\",\"value\":\"minecraft:projectile_protection\"},\"lvl\":{\"type\":\"short\",\"value\":4}},{\"id\":{\"type\":\"string\",\"value\":\"minecraft:respiration\"},\"lvl\":{\"type\":\"short\",\"value\":2}},{\"id\":{\"type\":\"string\",\"value\":\"minecraft:thorns\"},\"lvl\":{\"type\":\"short\",\"value\":1}},{\"id\":{\"type\":\"string\",\"value\":\"minecraft:unbreaking\"},\"lvl\":{\"type\":\"short\",\"value\":200}}]}},\"CLData\":{\"type\":\"compound\",\"value\":{\"ExtraData\":{\"type\":\"string\",\"value\":\"[\\\"Slot,全能槽,4#圣灵石\\\"]\"},\"Quality\":{\"type\":\"int\",\"value\":0},\"BindName\":{\"type\":\"string\",\"value\":\"F3YANG\"},\"SelectData\":{\"type\":\"string\",\"value\":\"[]\"},\"LevelData\":{\"type\":\"string\",\"value\":\"[\\\"Attr,防御力,30\\\",\\\"Attr,生命值,30\\\",\\\"Enchant,DURABILITY,200\\\"]\"},\"BZ\":{\"type\":\"string\",\"value\":\"[]\"}}},\"Damage\":{\"type\":\"int\",\"value\":1},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"平凡\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"的\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"blue\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"dark_blue\\\",\\\"text\\\":\\\"星碎头环\\\"}],\\\"text\\\":\\\"\\\"}\"},\"Lore\":{\"type\":\"list\",\"value\":{\"type\":\"string\",\"value\":[\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":true,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":false,\\\"color\\\":\\\"light_purple\\\",\\\"text\\\":\\\" 绑定 \\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"属于 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"F3YANG \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"玩家\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"red\\\",\\\"text\\\":\\\"死亡仍会掉落\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":true,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":false,\\\"color\\\":\\\"light_purple\\\",\\\"text\\\":\\\" 淬炼 \\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"✡三星淬炼\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"[\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"无宝珠\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"]\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"[\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"无宝珠\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"]\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"[\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"无宝珠\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"]\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":true,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":false,\\\"color\\\":\\\"light_purple\\\",\\\"text\\\":\\\" 属性 \\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"防御力 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"33.2\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"暴击抵抗 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"4.0\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"暴伤抵抗 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"8.0\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"生命值 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"30.0\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":true,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":false,\\\"color\\\":\\\"light_purple\\\",\\\"text\\\":\\\" 宝石 \\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"● \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"<\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"Lv\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\".\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"4 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"light_purple\\\",\\\"text\\\":\\\"圣灵石\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\">\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":true,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一一一一一一一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"}],\\\"text\\\":\\\"\\\"}\"]}}}},\"CMIGUIIcon\":{\"type\":\"string\",\"value\":\"LIProtection\"}}}","parsed":{"item_name":"netherite_helmet","display_name":"<span class=\"\"><span class=\"color-white\">平凡</span><span class=\"color-gray\">的</span><span class=\"color-blue\"> </span><span class=\"color-dark_blue\">星碎头环</span></span>","lore_text":"一一一一 绑定 一一一一\n 属于 F3YANG 玩家\n 死亡仍会掉落\n一一一一 淬炼 一一一一\n ✡三星淬炼\n [无宝珠][无宝珠][无宝珠]\n一一一一 属性 一一一一\n 防御力 33.2\n 暴击抵抗 4.0\n 暴伤抵抗 8.0\n 生命值 30.0\n一一一一 宝石 一一一一\n ● <Lv.4 圣灵石>\n一一一一一一一一一一一","cldata_slots":"[\n  {\n    \"type\": \"全能槽\",\n    \"value\": \"4#圣灵石\\\"\"\n  }\n]"}},{"slot":1,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"RepairCost\":{\"type\":\"int\",\"value\":1},\"Enchantments\":{\"type\":\"list\",\"value\":{\"type\":\"compound\",\"value\":[{\"id\":{\"type\":\"string\",\"value\":\"minecraft:blast_protection\"},\"lvl\":{\"type\":\"short\",\"value\":15}},{\"id\":{\"type\":\"string\",\"value\":\"minecraft:fire_protection\"},\"lvl\":{\"type\":\"short\",\"value\":30}},{\"id\":{\"type\":\"string\",\"value\":\"minecraft:mending\"},\"lvl\":{\"type\":\"short\",\"value\":1}},{\"id\":{\"type\":\"string\",\"value\":\"minecraft:projectile_protection\"},\"lvl\":{\"type\":\"short\",\"value\":15}},{\"id\":{\"type\":\"string\",\"value\":\"minecraft:protection\"},\"lvl\":{\"type\":\"short\",\"value\":208}},{\"id\":{\"type\":\"string\",\"value\":\"minecraft:thorns\"},\"lvl\":{\"type\":\"short\",\"value\":25}},{\"id\":{\"type\":\"string\",\"value\":\"minecraft:unbreaking\"},\"lvl\":{\"type\":\"short\",\"value\":200}}]}},\"Damage\":{\"type\":\"int\",\"value\":1},\"CLData\":{\"type\":\"compound\",\"value\":{\"ExtraData\":{\"type\":\"string\",\"value\":\"[\\\"Enchant,PROTECTION_ENVIRONMENTAL,200\\\",\\\"Enchant,PROTECTION_FIRE,30\\\",\\\"Enchant,PROTECTION_EXPLOSIONS,15\\\",\\\"Enchant,PROTECTION_PROJECTILE,15\\\",\\\"Enchant,THORNS,25\\\",\\\"Enchant,DURABILITY,200\\\",\\\"Attr,防御力,30\\\",\\\"Attr,闪避几率,5\\\",\\\"Attr,防御加成,1\\\",\\\"Slot,属性槽,4#圣灵石\\\",\\\"Slot,附魔槽,2#金刚石\\\",\\\"Slot,属性槽,4#圣灵石\\\",\\\"Slot,附魔槽,6#金刚石\\\",\\\"Slot,属性槽,1#防暴石\\\",\\\"Slot,全能槽,1#圣灵石\\\"]\"},\"Quality\":{\"type\":\"int\",\"value\":1},\"BindName\":{\"type\":\"string\",\"value\":\"F3YANG\"},\"LevelData\":{\"type\":\"string\",\"value\":\"[\\\"Attr,暴伤抵抗,3\\\",\\\"Attr,吸血抵抗,3\\\",\\\"Attr,防御力,2\\\"]\"},\"SelectData\":{\"type\":\"string\",\"value\":\"[]\"},\"BZ\":{\"type\":\"string\",\"value\":\"[]\"}}},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"精致\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"的\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"blue\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"red\\\",\\\"text\\\":\\\"彗星尾迹护腿\\\"}],\\\"text\\\":\\\"\\\"}\"},\"Lore\":{\"type\":\"list\",\"value\":{\"type\":\"string\",\"value\":[\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":true,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":false,\\\"color\\\":\\\"light_purple\\\",\\\"text\\\":\\\" 绑定 \\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"属于 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"F3YANG \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"玩家\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"red\\\",\\\"text\\\":\\\"死亡仍会掉落\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":true,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":false,\\\"color\\\":\\\"light_purple\\\",\\\"text\\\":\\\" 淬炼 \\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"✡三星淬炼\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"[\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"无宝珠\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"]\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"[\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"无宝珠\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"]\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"[\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"无宝珠\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"]\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":true,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":false,\\\"color\\\":\\\"light_purple\\\",\\\"text\\\":\\\" 属性 \\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"闪避几率 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"5.0\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"防御力 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"51.2\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"暴击抵抗 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"11.0\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"暴伤抵抗 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"23.0\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"防御加成 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"1.0\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"吸血抵抗 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"3.0\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":true,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":false,\\\"color\\\":\\\"light_purple\\\",\\\"text\\\":\\\" 宝石 \\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"● \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"<\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"Lv\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\".\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"4 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"light_purple\\\",\\\"text\\\":\\\"圣灵石\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\">\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"blue\\\",\\\"text\\\":\\\"● \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"<\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"Lv\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\".\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"2 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"light_purple\\\",\\\"text\\\":\\\"金刚石\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\">\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"● \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"<\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"Lv\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\".\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"4 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"light_purple\\\",\\\"text\\\":\\\"圣灵石\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\">\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"blue\\\",\\\"text\\\":\\\"● \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"<\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"Lv\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\".\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"6 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"light_purple\\\",\\\"text\\\":\\\"金刚石\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\">\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"● \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"<\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"Lv\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\".\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"1 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"light_purple\\\",\\\"text\\\":\\\"防暴石\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\">\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"● \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"<\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"Lv\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\".\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"1 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"light_purple\\\",\\\"text\\\":\\\"圣灵石\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\">\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"苦力怕之主 VIII\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":true,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一一一一一一一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\" ▣ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"高阶附魔槽位: \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"8\\\"}],\\\"text\\\":\\\"\\\"}\"]}}}},\"slots\":{\"type\":\"int\",\"value\":1},\"CMIGUIIcon\":{\"type\":\"string\",\"value\":\"LIProtection\"},\"ae_enchantment;苦力怕之主\":{\"type\":\"int\",\"value\":8}}}","parsed":{"item_name":"netherite_leggings","display_name":"<span class=\"\"><span class=\"color-green\">精致</span><span class=\"color-gray\">的</span><span class=\"color-blue\"> </span><span class=\"color-red\">彗星尾迹护腿</span></span>","lore_text":"一一一一 绑定 一一一一\n 属于 F3YANG 玩家\n 死亡仍会掉落\n一一一一 淬炼 一一一一\n ✡三星淬炼\n [无宝珠][无宝珠][无宝珠]\n一一一一 属性 一一一一\n 闪避几率 5.0\n 防御力 51.2\n 暴击抵抗 11.0\n 暴伤抵抗 23.0\n 防御加成 1.0\n 吸血抵抗 3.0\n一一一一 宝石 一一一一\n ● <Lv.4 圣灵石>\n ● <Lv.2 金刚石>\n ● <Lv.4 圣灵石>\n ● <Lv.6 金刚石>\n ● <Lv.1 防暴石>\n ● <Lv.1 圣灵石>\n苦力怕之主 VIII\n一一一一一一一一一一一\n ▣ 高阶附魔槽位: 8","cldata_slots":"[\n  {\n    \"type\": \"属性槽\",\n    \"value\": \"4#圣灵石\\\",\\\"Slot,附魔槽,2#金刚石\\\",\\\"Slot,属性槽,4#圣灵石\\\",\\\"Slot,附魔槽,6#金刚石\\\",\\\"Slot,属性槽,1#防暴石\\\",\\\"Slot,全能槽,1#圣灵石\\\"\"\n  }\n]"}},{"slot":2,"snbt":"{}","parsed":{"item_name":"blaze_rod","display_name":null,"lore_text":null,"cldata_slots":null}},{"slot":3,"parsed":{"item_name":"empty"}},{"slot":4,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"CMIGUIIcon\":{\"type\":\"string\",\"value\":\"LIProtection\"},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"}],\\\"text\\\":\\\"\\\"}\"}}}}}","parsed":{"item_name":"black_stained_glass_pane","display_name":"<span class=\"\"><span class=\"\"> </span></span>","lore_text":null,"cldata_slots":null}},{"slot":5,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"CMIGUIIcon\":{\"type\":\"string\",\"value\":\"LIProtection\"},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"Open ender chest\\\"}],\\\"text\\\":\\\"\\\"}\"}}}}}","parsed":{"item_name":"ender_chest","display_name":"<span class=\"\"><span class=\"color-gray\">Open ender chest</span></span>","lore_text":null,"cldata_slots":null}},{"slot":6,"parsed":{"item_name":"empty"}},{"slot":7,"parsed":{"item_name":"empty"}},{"slot":8,"parsed":{"item_name":"empty"}},{"slot":9,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"RepairCost\":{\"type\":\"int\",\"value\":3},\"Enchantments\":{\"type\":\"list\",\"value\":{\"type\":\"compound\",\"value\":[{\"id\":{\"type\":\"string\",\"value\":\"minecraft:mending\"},\"lvl\":{\"type\":\"short\",\"value\":1}},{\"id\":{\"type\":\"string\",\"value\":\"minecraft:unbreaking\"},\"lvl\":{\"type\":\"short\",\"value\":3}}]}},\"Damage\":{\"type\":\"int\",\"value\":1},\"display\":{\"type\":\"compound\",\"value\":{\"Lore\":{\"type\":\"list\",\"value\":{\"type\":\"string\",\"value\":[\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"light_purple\\\",\\\"text\\\":\\\"飞翔 I\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\" ▣ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"高阶附魔槽位: \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"8\\\"}],\\\"text\\\":\\\"\\\"}\"]}}}},\"slots\":{\"type\":\"int\",\"value\":1},\"ae_enchantment;飞翔\":{\"type\":\"int\",\"value\":1},\"CMIGUIIcon\":{\"type\":\"string\",\"value\":\"LIProtection\"}}}","parsed":{"item_name":"elytra","display_name":null,"lore_text":null,"cldata_slots":null}},{"slot":10,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"RepairCost\":{\"type\":\"int\",\"value\":31},\"Enchantments\":{\"type\":\"list\",\"value\":{\"type\":\"compound\",\"value\":[{\"id\":{\"type\":\"string\",\"value\":\"minecraft:feather_falling\"},\"lvl\":{\"type\":\"short\",\"value\":4}},{\"id\":{\"type\":\"string\",\"value\":\"minecraft:mending\"},\"lvl\":{\"type\":\"short\",\"value\":1}},{\"id\":{\"type\":\"string\",\"value\":\"minecraft:protection\"},\"lvl\":{\"type\":\"short\",\"value\":9}},{\"id\":{\"type\":\"string\",\"value\":\"minecraft:soul_speed\"},\"lvl\":{\"type\":\"short\",\"value\":2}},{\"id\":{\"type\":\"string\",\"value\":\"minecraft:thorns\"},\"lvl\":{\"type\":\"short\",\"value\":1}},{\"id\":{\"type\":\"string\",\"value\":\"minecraft:unbreaking\"},\"lvl\":{\"type\":\"short\",\"value\":200}}]}},\"CLData\":{\"type\":\"compound\",\"value\":{\"ExtraData\":{\"type\":\"string\",\"value\":\"[\\\"Slot,全能槽,5#金刚石\\\"]\"},\"Quality\":{\"type\":\"int\",\"value\":0},\"BindName\":{\"type\":\"string\",\"value\":\"F3YANG\"},\"SelectData\":{\"type\":\"string\",\"value\":\"[]\"},\"LevelData\":{\"type\":\"string\",\"value\":\"[\\\"Attr,防御力,30\\\",\\\"Attr,生命值,30\\\",\\\"Enchant,DURABILITY,200\\\"]\"},\"BZ\":{\"type\":\"string\",\"value\":\"[]\"}}},\"Damage\":{\"type\":\"int\",\"value\":3},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"平凡\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"的\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"blue\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"dark_blue\\\",\\\"text\\\":\\\"夜坠之靴\\\"}],\\\"text\\\":\\\"\\\"}\"},\"Lore\":{\"type\":\"list\",\"value\":{\"type\":\"string\",\"value\":[\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":true,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":false,\\\"color\\\":\\\"light_purple\\\",\\\"text\\\":\\\" 绑定 \\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"属于 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"F3YANG \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"玩家\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"red\\\",\\\"text\\\":\\\"死亡仍会掉落\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":true,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":false,\\\"color\\\":\\\"light_purple\\\",\\\"text\\\":\\\" 淬炼 \\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"✡三星淬炼\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"[\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"无宝珠\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"]\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"[\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"无宝珠\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"]\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"[\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"无宝珠\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"]\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":true,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":false,\\\"color\\\":\\\"light_purple\\\",\\\"text\\\":\\\" 属性 \\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"防御力 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"37.5\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"生命值 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"30.0\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":true,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":false,\\\"color\\\":\\\"light_purple\\\",\\\"text\\\":\\\" 宝石 \\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"● \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"<\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"Lv\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\".\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"5 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"light_purple\\\",\\\"text\\\":\\\"金刚石\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\">\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":true,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一一一一一一一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"}],\\\"text\\\":\\\"\\\"}\"]}}}},\"CMIGUIIcon\":{\"type\":\"string\",\"value\":\"LIProtection\"}}}","parsed":{"item_name":"netherite_boots","display_name":"<span class=\"\"><span class=\"color-white\">平凡</span><span class=\"color-gray\">的</span><span class=\"color-blue\"> </span><span class=\"color-dark_blue\">夜坠之靴</span></span>","lore_text":"一一一一 绑定 一一一一\n 属于 F3YANG 玩家\n 死亡仍会掉落\n一一一一 淬炼 一一一一\n ✡三星淬炼\n [无宝珠][无宝珠][无宝珠]\n一一一一 属性 一一一一\n 防御力 37.5\n 生命值 30.0\n一一一一 宝石 一一一一\n ● <Lv.5 金刚石>\n一一一一一一一一一一一","cldata_slots":"[\n  {\n    \"type\": \"全能槽\",\n    \"value\": \"5#金刚石\\\"\"\n  }\n]"}},{"slot":11,"parsed":{"item_name":"empty"}},{"slot":12,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"CMIGUIIcon\":{\"type\":\"string\",\"value\":\"LIProtection\"},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"}],\\\"text\\\":\\\"\\\"}\"}}}}}","parsed":{"item_name":"black_stained_glass_pane","display_name":"<span class=\"\"><span class=\"\"> </span></span>","lore_text":null,"cldata_slots":null}},{"slot":13,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"CMIGUIIcon\":{\"type\":\"string\",\"value\":\"LIProtection\"},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"}],\\\"text\\\":\\\"\\\"}\"}}}}}","parsed":{"item_name":"black_stained_glass_pane","display_name":"<span class=\"\"><span class=\"\"> </span></span>","lore_text":null,"cldata_slots":null}},{"slot":14,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"CMIGUIIcon\":{\"type\":\"string\",\"value\":\"LIProtection\"},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"}],\\\"text\\\":\\\"\\\"}\"}}}}}","parsed":{"item_name":"black_stained_glass_pane","display_name":"<span class=\"\"><span class=\"\"> </span></span>","lore_text":null,"cldata_slots":null}},{"slot":15,"parsed":{"item_name":"empty"}},{"slot":16,"parsed":{"item_name":"empty"}},{"slot":17,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"CMIGUIIcon\":{\"type\":\"string\",\"value\":\"LIProtection\"},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"}],\\\"text\\\":\\\"\\\"}\"}}}}}","parsed":{"item_name":"black_stained_glass_pane","display_name":"<span class=\"\"><span class=\"\"> </span></span>","lore_text":null,"cldata_slots":null}},{"slot":18,"snbt":"{}","parsed":{"item_name":"arrow","display_name":null,"lore_text":null,"cldata_slots":null}},{"slot":19,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"Enchantments\":{\"type\":\"list\",\"value\":{\"type\":\"compound\",\"value\":[{\"id\":{\"type\":\"string\",\"value\":\"minecraft:efficiency\"},\"lvl\":{\"type\":\"short\",\"value\":6}},{\"id\":{\"type\":\"string\",\"value\":\"minecraft:unbreaking\"},\"lvl\":{\"type\":\"short\",\"value\":3}}]}},\"HideFlags\":{\"type\":\"int\",\"value\":2},\"Damage\":{\"type\":\"int\",\"value\":0},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"Vote Axe\\\"}],\\\"text\\\":\\\"\\\"}\"}}}}}","parsed":{"item_name":"diamond_axe","display_name":"<span class=\"\"><span class=\"color-yellow\">Vote Axe</span></span>","lore_text":null,"cldata_slots":null}},{"slot":20,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"RepairCost\":{\"type\":\"int\",\"value\":7},\"Enchantments\":{\"type\":\"list\",\"value\":{\"type\":\"compound\",\"value\":[{\"id\":{\"type\":\"string\",\"value\":\"minecraft:efficiency\"},\"lvl\":{\"type\":\"short\",\"value\":5}},{\"id\":{\"type\":\"string\",\"value\":\"minecraft:fortune\"},\"lvl\":{\"type\":\"short\",\"value\":3}},{\"id\":{\"type\":\"string\",\"value\":\"minecraft:mending\"},\"lvl\":{\"type\":\"short\",\"value\":1}},{\"id\":{\"type\":\"string\",\"value\":\"minecraft:unbreaking\"},\"lvl\":{\"type\":\"short\",\"value\":3}}]}},\"Damage\":{\"type\":\"int\",\"value\":16}}}","parsed":{"item_name":"diamond_shovel","display_name":null,"lore_text":null,"cldata_slots":null}},{"slot":21,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"Enchantments\":{\"type\":\"list\",\"value\":{\"type\":\"compound\",\"value\":[{\"id\":{\"type\":\"string\",\"value\":\"minecraft:unbreaking\"},\"lvl\":{\"type\":\"short\",\"value\":3}}]}},\"HideFlags\":{\"type\":\"int\",\"value\":2},\"Damage\":{\"type\":\"int\",\"value\":0},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"Vote Hoe\\\"}],\\\"text\\\":\\\"\\\"}\"}}}}}","parsed":{"item_name":"diamond_hoe","display_name":"<span class=\"\"><span class=\"color-yellow\">Vote Hoe</span></span>","lore_text":null,"cldata_slots":null}},{"slot":22,"snbt":"{}","parsed":{"item_name":"stick","display_name":null,"lore_text":null,"cldata_slots":null}},{"slot":23,"snbt":"{}","parsed":{"item_name":"sugar_cane","display_name":null,"lore_text":null,"cldata_slots":null}},{"slot":24,"snbt":"{}","parsed":{"item_name":"beacon","display_name":null,"lore_text":null,"cldata_slots":null}},{"slot":25,"snbt":"{}","parsed":{"item_name":"shulker_shell","display_name":null,"lore_text":null,"cldata_slots":null}},{"slot":26,"snbt":"{}","parsed":{"item_name":"purpur_pillar","display_name":null,"lore_text":null,"cldata_slots":null}},{"slot":27,"snbt":"{}","parsed":{"item_name":"purpur_block","display_name":null,"lore_text":null,"cldata_slots":null}},{"slot":28,"snbt":"{}","parsed":{"item_name":"blast_furnace","display_name":null,"lore_text":null,"cldata_slots":null}},{"slot":29,"snbt":"{}","parsed":{"item_name":"end_rod","display_name":null,"lore_text":null,"cldata_slots":null}},{"slot":30,"snbt":"{}","parsed":{"item_name":"diamond_block","display_name":null,"lore_text":null,"cldata_slots":null}},{"slot":31,"snbt":"{}","parsed":{"item_name":"ancient_debris","display_name":null,"lore_text":null,"cldata_slots":null}},{"slot":32,"parsed":{"item_name":"empty"}},{"slot":33,"parsed":{"item_name":"empty"}},{"slot":34,"parsed":{"item_name":"empty"}},{"slot":35,"parsed":{"item_name":"empty"}},{"slot":36,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"Damage\":{\"type\":\"int\",\"value\":0},\"Enchantments\":{\"type\":\"list\",\"value\":{\"type\":\"compound\",\"value\":[{\"id\":{\"type\":\"string\",\"value\":\"minecraft:efficiency\"},\"lvl\":{\"type\":\"short\",\"value\":4}},{\"id\":{\"type\":\"string\",\"value\":\"minecraft:silk_touch\"},\"lvl\":{\"type\":\"short\",\"value\":1}},{\"id\":{\"type\":\"string\",\"value\":\"minecraft:vanishing_curse\"},\"lvl\":{\"type\":\"short\",\"value\":1}}]}}}}","parsed":{"item_name":"diamond_pickaxe","display_name":null,"lore_text":null,"cldata_slots":null}},{"slot":37,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"Damage\":{\"type\":\"int\",\"value\":0},\"Enchantments\":{\"type\":\"list\",\"value\":{\"type\":\"compound\",\"value\":[{\"id\":{\"type\":\"string\",\"value\":\"minecraft:efficiency\"},\"lvl\":{\"type\":\"short\",\"value\":3}},{\"id\":{\"type\":\"string\",\"value\":\"minecraft:unbreaking\"},\"lvl\":{\"type\":\"short\",\"value\":3}}]}}}}","parsed":{"item_name":"iron_pickaxe","display_name":null,"lore_text":null,"cldata_slots":null}},{"slot":38,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"Damage\":{\"type\":\"int\",\"value\":0},\"Enchantments\":{\"type\":\"list\",\"value\":{\"type\":\"compound\",\"value\":[{\"id\":{\"type\":\"string\",\"value\":\"minecraft:efficiency\"},\"lvl\":{\"type\":\"short\",\"value\":3}},{\"id\":{\"type\":\"string\",\"value\":\"minecraft:vanishing_curse\"},\"lvl\":{\"type\":\"short\",\"value\":1}}]}}}}","parsed":{"item_name":"diamond_shovel","display_name":null,"lore_text":null,"cldata_slots":null}},{"slot":39,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"Damage\":{\"type\":\"int\",\"value\":0},\"Enchantments\":{\"type\":\"list\",\"value\":{\"type\":\"compound\",\"value\":[{\"id\":{\"type\":\"string\",\"value\":\"minecraft:unbreaking\"},\"lvl\":{\"type\":\"short\",\"value\":3}},{\"id\":{\"type\":\"string\",\"value\":\"minecraft:vanishing_curse\"},\"lvl\":{\"type\":\"short\",\"value\":1}}]}}}}","parsed":{"item_name":"iron_sword","display_name":null,"lore_text":null,"cldata_slots":null}},{"slot":40,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"Damage\":{\"type\":\"int\",\"value\":0},\"Enchantments\":{\"type\":\"list\",\"value\":{\"type\":\"compound\",\"value\":[{\"id\":{\"type\":\"string\",\"value\":\"minecraft:sharpness\"},\"lvl\":{\"type\":\"short\",\"value\":3}},{\"id\":{\"type\":\"string\",\"value\":\"minecraft:unbreaking\"},\"lvl\":{\"type\":\"short\",\"value\":3}}]}}}}","parsed":{"item_name":"diamond_sword","display_name":null,"lore_text":null,"cldata_slots":null}},{"slot":41,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"Damage\":{\"type\":\"int\",\"value\":0},\"Enchantments\":{\"type\":\"list\",\"value\":{\"type\":\"compound\",\"value\":[{\"id\":{\"type\":\"string\",\"value\":\"minecraft:fire_protection\"},\"lvl\":{\"type\":\"short\",\"value\":3}}]}}}}","parsed":{"item_name":"diamond_chestplate","display_name":null,"lore_text":null,"cldata_slots":null}},{"slot":42,"snbt":"{}","parsed":{"item_name":"iron_ingot","display_name":null,"lore_text":null,"cldata_slots":null}},{"slot":43,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"Damage\":{\"type\":\"int\",\"value\":0},\"Enchantments\":{\"type\":\"list\",\"value\":{\"type\":\"compound\",\"value\":[{\"id\":{\"type\":\"string\",\"value\":\"minecraft:blast_protection\"},\"lvl\":{\"type\":\"short\",\"value\":4}},{\"id\":{\"type\":\"string\",\"value\":\"minecraft:depth_strider\"},\"lvl\":{\"type\":\"short\",\"value\":3}},{\"id\":{\"type\":\"string\",\"value\":\"minecraft:mending\"},\"lvl\":{\"type\":\"short\",\"value\":1}},{\"id\":{\"type\":\"string\",\"value\":\"minecraft:unbreaking\"},\"lvl\":{\"type\":\"short\",\"value\":3}}]}}}}","parsed":{"item_name":"iron_boots","display_name":null,"lore_text":null,"cldata_slots":null}},{"slot":44,"snbt":"{}","parsed":{"item_name":"gold_ingot","display_name":null,"lore_text":null,"cldata_slots":null}},{"slot":45,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"RepairCost\":{\"type\":\"int\",\"value\":1},\"Enchantments\":{\"type\":\"list\",\"value\":{\"type\":\"compound\",\"value\":[{\"id\":{\"type\":\"string\",\"value\":\"minecraft:bane_of_arthropods\"},\"lvl\":{\"type\":\"short\",\"value\":10}},{\"id\":{\"type\":\"string\",\"value\":\"minecraft:fire_aspect\"},\"lvl\":{\"type\":\"short\",\"value\":5}},{\"id\":{\"type\":\"string\",\"value\":\"minecraft:knockback\"},\"lvl\":{\"type\":\"short\",\"value\":5}},{\"id\":{\"type\":\"string\",\"value\":\"minecraft:looting\"},\"lvl\":{\"type\":\"short\",\"value\":5}},{\"id\":{\"type\":\"string\",\"value\":\"minecraft:mending\"},\"lvl\":{\"type\":\"short\",\"value\":1}},{\"id\":{\"type\":\"string\",\"value\":\"minecraft:power\"},\"lvl\":{\"type\":\"short\",\"value\":1}},{\"id\":{\"type\":\"string\",\"value\":\"minecraft:sharpness\"},\"lvl\":{\"type\":\"short\",\"value\":237}},{\"id\":{\"type\":\"string\",\"value\":\"minecraft:smite\"},\"lvl\":{\"type\":\"short\",\"value\":10}},{\"id\":{\"type\":\"string\",\"value\":\"minecraft:sweeping\"},\"lvl\":{\"type\":\"short\",\"value\":2}}]}},\"Damage\":{\"type\":\"int\",\"value\":0},\"CLData\":{\"type\":\"compound\",\"value\":{\"ExtraData\":{\"type\":\"string\",\"value\":\"[\\\"Enchant,DAMAGE_ALL,200\\\",\\\"Enchant,KNOCKBACK,5\\\",\\\"Enchant,FIRE_ASPECT,5\\\",\\\"Enchant,DAMAGE_UNDEAD,10\\\",\\\"Enchant,DAMAGE_ARTHROPODS,10\\\",\\\"Enchant,LOOT_BONUS_MOBS,5\\\",\\\"Enchant,SWEEPING_EDGE,2\\\",\\\"Attr,攻击力,50\\\",\\\"Attr,暴击几率,10\\\",\\\"Attr,暴伤倍率,20\\\",\\\"Attr,攻击加成,1\\\",\\\"Slot,全能槽,5#灾厄石\\\",\\\"Slot,全能槽,4#灾厄石\\\",\\\"Slot,全能槽,1#锋利石\\\",\\\"Slot,全能槽,1#力量石\\\",\\\"Slot,全能槽,6#利刃石\\\",\\\"Slot,全能槽,4#利刃石\\\"]\"},\"Quality\":{\"type\":\"int\",\"value\":1},\"BindName\":{\"type\":\"string\",\"value\":\"F3YANG\"},\"LevelData\":{\"type\":\"string\",\"value\":\"[\\\"Attr,雷击几率,2\\\",\\\"Attr,暴伤倍率,7\\\",\\\"Enchant,DAMAGE_ALL,6\\\"]\"},\"SelectData\":{\"type\":\"string\",\"value\":\"[]\"},\"BZ\":{\"type\":\"string\",\"value\":\"[]\"}}},\"slots\":{\"type\":\"int\",\"value\":1},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"精致\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"的\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"blue\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"red\\\",\\\"text\\\":\\\"星辉断影\\\"}],\\\"text\\\":\\\"\\\"}\"},\"Lore\":{\"type\":\"list\",\"value\":{\"type\":\"string\",\"value\":[\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":true,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":false,\\\"color\\\":\\\"light_purple\\\",\\\"text\\\":\\\" 绑定 \\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"属于 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"F3YANG \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"玩家\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"red\\\",\\\"text\\\":\\\"死亡仍会掉落\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":true,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":false,\\\"color\\\":\\\"light_purple\\\",\\\"text\\\":\\\" 淬炼 \\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"✡三星淬炼\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"[\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"无宝珠\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"]\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"[\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"无宝珠\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"]\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"[\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"无宝珠\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"]\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":true,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":false,\\\"color\\\":\\\"light_purple\\\",\\\"text\\\":\\\" 属性 \\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"攻击加成 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"1.0\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"暴击几率 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"19.0\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"雷击几率 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"2.0\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"暴伤倍率 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"27.0\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"攻击力 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"90.0\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":true,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":false,\\\"color\\\":\\\"light_purple\\\",\\\"text\\\":\\\" 宝石 \\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"● \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"<\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"Lv\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\".\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"5 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"light_purple\\\",\\\"text\\\":\\\"灾厄石\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\">\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"● \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"<\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"Lv\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\".\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"4 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"light_purple\\\",\\\"text\\\":\\\"灾厄石\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\">\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"● \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"<\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"Lv\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\".\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"1 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"light_purple\\\",\\\"text\\\":\\\"锋利石\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\">\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"● \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"<\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"Lv\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\".\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"1 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"light_purple\\\",\\\"text\\\":\\\"力量石\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\">\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"● \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"<\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"Lv\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\".\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"6 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"light_purple\\\",\\\"text\\\":\\\"利刃石\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\">\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"● \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"<\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"Lv\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\".\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"4 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"light_purple\\\",\\\"text\\\":\\\"利刃石\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\">\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"急迫 III\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":true,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一一一一一一一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\" ▣ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"高阶附魔槽位: \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"8\\\"}],\\\"text\\\":\\\"\\\"}\"]}}}},\"ae_enchantment;急迫\":{\"type\":\"int\",\"value\":3}}}","parsed":{"item_name":"netherite_sword","display_name":"<span class=\"\"><span class=\"color-green\">精致</span><span class=\"color-gray\">的</span><span class=\"color-blue\"> </span><span class=\"color-red\">星辉断影</span></span>","lore_text":"一一一一 绑定 一一一一\n 属于 F3YANG 玩家\n 死亡仍会掉落\n一一一一 淬炼 一一一一\n ✡三星淬炼\n [无宝珠][无宝珠][无宝珠]\n一一一一 属性 一一一一\n 攻击加成 1.0\n 暴击几率 19.0\n 雷击几率 2.0\n 暴伤倍率 27.0\n 攻击力 90.0\n一一一一 宝石 一一一一\n ● <Lv.5 灾厄石>\n ● <Lv.4 灾厄石>\n ● <Lv.1 锋利石>\n ● <Lv.1 力量石>\n ● <Lv.6 利刃石>\n ● <Lv.4 利刃石>\n急迫 III\n一一一一一一一一一一一\n ▣ 高阶附魔槽位: 8","cldata_slots":"[\n  {\n    \"type\": \"全能槽\",\n    \"value\": \"5#灾厄石\\\",\\\"Slot,全能槽,4#灾厄石\\\",\\\"Slot,全能槽,1#锋利石\\\",\\\"Slot,全能槽,1#力量石\\\",\\\"Slot,全能槽,6#利刃石\\\",\\\"Slot,全能槽,4#利刃石\\\"\"\n  }\n]"}},{"slot":46,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"RepairCost\":{\"type\":\"int\",\"value\":31},\"ae_enchantment;爆炸弓\":{\"type\":\"int\",\"value\":5},\"Enchantments\":{\"type\":\"list\",\"value\":{\"type\":\"compound\",\"value\":[{\"id\":{\"type\":\"string\",\"value\":\"minecraft:flame\"},\"lvl\":{\"type\":\"short\",\"value\":1}},{\"id\":{\"type\":\"string\",\"value\":\"minecraft:infinity\"},\"lvl\":{\"type\":\"short\",\"value\":1}},{\"id\":{\"type\":\"string\",\"value\":\"minecraft:power\"},\"lvl\":{\"type\":\"short\",\"value\":3}},{\"id\":{\"type\":\"string\",\"value\":\"minecraft:unbreaking\"},\"lvl\":{\"type\":\"short\",\"value\":3}}]}},\"slots\":{\"type\":\"int\",\"value\":1},\"Damage\":{\"type\":\"int\",\"value\":103},\"display\":{\"type\":\"compound\",\"value\":{\"Lore\":{\"type\":\"list\",\"value\":{\"type\":\"string\",\"value\":[\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"爆炸弓 V\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\" ▣ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"高阶附魔槽位: \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"8\\\"}],\\\"text\\\":\\\"\\\"}\"]}}}}}}","parsed":{"item_name":"bow","display_name":null,"lore_text":null,"cldata_slots":null}},{"slot":47,"snbt":"{}","parsed":{"item_name":"cooked_porkchop","display_name":null,"lore_text":null,"cldata_slots":null}},{"slot":48,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"RepairCost\":{\"type\":\"int\",\"value\":3},\"Enchantments\":{\"type\":\"list\",\"value\":{\"type\":\"compound\",\"value\":[{\"id\":{\"type\":\"string\",\"value\":\"minecraft:mending\"},\"lvl\":{\"type\":\"short\",\"value\":1}},{\"id\":{\"type\":\"string\",\"value\":\"minecraft:protection\"},\"lvl\":{\"type\":\"short\",\"value\":10}},{\"id\":{\"type\":\"string\",\"value\":\"minecraft:thorns\"},\"lvl\":{\"type\":\"short\",\"value\":1}},{\"id\":{\"type\":\"string\",\"value\":\"minecraft:unbreaking\"},\"lvl\":{\"type\":\"short\",\"value\":200}},{\"id\":{\"type\":\"string\",\"value\":\"minecraft:vanishing_curse\"},\"lvl\":{\"type\":\"short\",\"value\":1}}]}},\"CLData\":{\"type\":\"compound\",\"value\":{\"ExtraData\":{\"type\":\"string\",\"value\":\"[\\\"Slot,全能槽,6#金刚石\\\"]\"},\"Quality\":{\"type\":\"int\",\"value\":1},\"BindName\":{\"type\":\"string\",\"value\":\"F3YANG\"},\"SelectData\":{\"type\":\"string\",\"value\":\"[]\"},\"LevelData\":{\"type\":\"string\",\"value\":\"[\\\"Attr,防御力,30\\\",\\\"Attr,生命值,30\\\",\\\"Enchant,DURABILITY,200\\\"]\"},\"BZ\":{\"type\":\"string\",\"value\":\"[]\"}}},\"Damage\":{\"type\":\"int\",\"value\":0},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"精致\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"的\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"blue\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"dark_blue\\\",\\\"text\\\":\\\"星陨护甲\\\"}],\\\"text\\\":\\\"\\\"}\"},\"Lore\":{\"type\":\"list\",\"value\":{\"type\":\"string\",\"value\":[\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":true,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":false,\\\"color\\\":\\\"light_purple\\\",\\\"text\\\":\\\" 绑定 \\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"属于 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"F3YANG \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"玩家\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"red\\\",\\\"text\\\":\\\"死亡仍会掉落\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":true,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":false,\\\"color\\\":\\\"light_purple\\\",\\\"text\\\":\\\" 淬炼 \\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"✡三星淬炼\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"[\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"无宝珠\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"]\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"[\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"无宝珠\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"]\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"[\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"无宝珠\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"]\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":true,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":false,\\\"color\\\":\\\"light_purple\\\",\\\"text\\\":\\\" 属性 \\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"防御力 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"39.0\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"生命值 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"30.0\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":true,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":false,\\\"color\\\":\\\"light_purple\\\",\\\"text\\\":\\\" 宝石 \\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"● \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"<\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"Lv\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\".\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"6 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"light_purple\\\",\\\"text\\\":\\\"金刚石\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\">\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":true,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一一一一一一一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"}],\\\"text\\\":\\\"\\\"}\"]}}}}}}","parsed":{"item_name":"netherite_chestplate","display_name":"<span class=\"\"><span class=\"color-green\">精致</span><span class=\"color-gray\">的</span><span class=\"color-blue\"> </span><span class=\"color-dark_blue\">星陨护甲</span></span>","lore_text":"一一一一 绑定 一一一一\n 属于 F3YANG 玩家\n 死亡仍会掉落\n一一一一 淬炼 一一一一\n ✡三星淬炼\n [无宝珠][无宝珠][无宝珠]\n一一一一 属性 一一一一\n 防御力 39.0\n 生命值 30.0\n一一一一 宝石 一一一一\n ● <Lv.6 金刚石>\n一一一一一一一一一一一","cldata_slots":"[\n  {\n    \"type\": \"全能槽\",\n    \"value\": \"6#金刚石\\\"\"\n  }\n]"}},{"slot":49,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"RepairCost\":{\"type\":\"int\",\"value\":7},\"Enchantments\":{\"type\":\"list\",\"value\":{\"type\":\"compound\",\"value\":[{\"id\":{\"type\":\"string\",\"value\":\"minecraft:efficiency\"},\"lvl\":{\"type\":\"short\",\"value\":4}},{\"id\":{\"type\":\"string\",\"value\":\"minecraft:fortune\"},\"lvl\":{\"type\":\"short\",\"value\":3}},{\"id\":{\"type\":\"string\",\"value\":\"minecraft:mending\"},\"lvl\":{\"type\":\"short\",\"value\":1}},{\"id\":{\"type\":\"string\",\"value\":\"minecraft:unbreaking\"},\"lvl\":{\"type\":\"short\",\"value\":4}}]}},\"Damage\":{\"type\":\"int\",\"value\":46},\"CLData\":{\"type\":\"compound\",\"value\":{\"ExtraData\":{\"type\":\"string\",\"value\":\"[]\"},\"Quality\":{\"type\":\"int\",\"value\":0},\"BindName\":{\"type\":\"string\",\"value\":\"F3YANG\"},\"LevelData\":{\"type\":\"string\",\"value\":\"[\\\"Enchant,DURABILITY,1\\\",\\\"Attr,经验加成,6\\\"]\"},\"SelectData\":{\"type\":\"string\",\"value\":\"[]\"},\"BZ\":{\"type\":\"string\",\"value\":\"[]\"}}},\"slots\":{\"type\":\"int\",\"value\":2},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"平凡\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"的\\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"blue\\\",\\\"text\\\":\\\" 下界合金镐\\\"}],\\\"text\\\":\\\"\\\"}\"},\"Lore\":{\"type\":\"list\",\"value\":{\"type\":\"string\",\"value\":[\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":true,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":false,\\\"color\\\":\\\"light_purple\\\",\\\"text\\\":\\\" 绑定 \\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"属于 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"F3YANG \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\"玩家\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"red\\\",\\\"text\\\":\\\"死亡仍会掉落\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":true,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":false,\\\"color\\\":\\\"light_purple\\\",\\\"text\\\":\\\" 淬炼 \\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"✯✯二星淬炼\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"green\\\",\\\"text\\\":\\\" \\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"[\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"无宝珠\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"]\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"[\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"无宝珠\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"]\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"[\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"无宝珠\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"]\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":true,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":false,\\\"color\\\":\\\"light_purple\\\",\\\"text\\\":\\\" 属性 \\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\" \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"经验加成 \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"6.0\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":true,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":false,\\\"color\\\":\\\"light_purple\\\",\\\"text\\\":\\\" 宝石 \\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"dark_red\\\",\\\"text\\\":\\\"一一\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"strikethrough\\\":true,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"一\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§g§g§g\\\"},{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\" 暂无宝石\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"海洋矿工 II\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"熔炼 III\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\" ▣ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"高阶附魔槽位: \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"7\\\"}],\\\"text\\\":\\\"\\\"}\"]}}}},\"ae_enchantment;熔炼\":{\"type\":\"int\",\"value\":3},\"ae_enchantment;海洋矿工\":{\"type\":\"int\",\"value\":2}}}","parsed":{"item_name":"netherite_pickaxe","display_name":"<span class=\"\"><span class=\"color-white\">平凡</span><span class=\"color-gray\">的</span><span class=\"color-blue\"> 下界合金镐</span></span>","lore_text":"一一一一 绑定 一一一一\n 属于 F3YANG 玩家\n 死亡仍会掉落\n一一一一 淬炼 一一一一\n ✯✯二星淬炼\n [无宝珠][无宝珠][无宝珠]\n一一一一 属性 一一一一\n 经验加成 6.0\n一一一一 宝石 一一一一\n 暂无宝石\n海洋矿工 II\n熔炼 III\n ▣ 高阶附魔槽位: 7","cldata_slots":"[]"}},{"slot":50,"snbt":"{}","parsed":{"item_name":"ender_pearl","display_name":null,"lore_text":null,"cldata_slots":null}},{"slot":51,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"Damage\":{\"type\":\"int\",\"value\":0}}}","parsed":{"item_name":"flint_and_steel","display_name":null,"lore_text":null,"cldata_slots":null}},{"slot":52,"snbt":"{}","parsed":{"item_name":"arrow","display_name":null,"lore_text":null,"cldata_slots":null}},{"slot":53,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"Fireworks\":{\"type\":\"compound\",\"value\":{\"Flight\":{\"type\":\"byte\",\"value\":1}}}}}","parsed":{"item_name":"firework_rocket","display_name":null,"lore_text":null,"cldata_slots":null}}];
+        
+        // 工具提示显示
+        function showTooltip(event, slotNumber) {
+            const tooltip = document.getElementById('tooltip');
+            // 根据槽位编号查找物品数据
+            const item = itemsData.find(item => item.slot === parseInt(slotNumber));
+            
+            if (!item || !item.parsed) return;
+            
+            let tooltipHTML = '';
+            
+            // 显示物品名称
+            if (item.parsed && item.parsed.display_name) {
+                tooltipHTML += '<div class="tooltip-name">' + item.parsed.display_name + '</div>';
+            } else if (item.parsed && item.parsed.item_name) {
+                tooltipHTML += '<div class="tooltip-name">' + item.parsed.item_name + '</div>';
+            }
+            
+            // 显示Lore信息
+            if (item.parsed && item.parsed.lore_text) {
+                tooltipHTML += '<div class="tooltip-lore">' + item.parsed.lore_text + '</div>';
+            }
+            
+            if (tooltipHTML) {
+                tooltip.innerHTML = tooltipHTML;
+                tooltip.style.display = 'block';
+                tooltip.style.left = (event.pageX + 10) + 'px';
+                tooltip.style.top = (event.pageY + 10) + 'px';
+            }
+        }
+        
+        // 隐藏工具提示
+        function hideTooltip() {
+            const tooltip = document.getElementById('tooltip');
+            tooltip.style.display = 'none';
+        }
+        
+        // 显示左键菜单
+        function showContextMenu(event, slotNumber) {
+            event.preventDefault();
+            event.stopPropagation();
+            
+            const contextMenu = document.getElementById('contextMenu');
+            // 根据槽位编号查找物品数据
+            const item = itemsData.find(item => item.slot === parseInt(slotNumber));
+            
+            if (!item) {
+                console.log('未找到物品数据，槽位:', slotNumber);
+                return;
+            }
+            
+            let menuHTML = '';
+            
+            // 如果有CLData，显示复制槽位信息和查看槽位选项
+            if (item.parsed && item.parsed.cldata_slots) {
+                menuHTML += '<div class="context-menu-item" onclick="copySlotInfo(' + slotNumber + ')">复制槽位信息</div>';
+                menuHTML += '<div class="context-menu-item" onclick="viewSlotInfo(' + slotNumber + ')">查看槽位</div>';
+            }
+            
+            // 总是显示复制SNBT信息选项
+            menuHTML += '<div class="context-menu-item" onclick="copySNBTInfo(' + slotNumber + ')">复制SNBT信息</div>';
+            
+            // 显示复制获取物品信息选项
+            menuHTML += '<div class="context-menu-item" onclick="copyGiveCommand(' + slotNumber + ')">复制获取物品信息</div>';
+            
+            contextMenu.innerHTML = menuHTML;
+            contextMenu.style.display = 'block';
+            contextMenu.style.left = event.pageX + 'px';
+            contextMenu.style.top = event.pageY + 'px';
+            
+            console.log('显示菜单，槽位:', slotNumber, '物品数据:', item);
+        }
+        
+        // 隐藏右键菜单
+        function hideContextMenu() {
+            const contextMenu = document.getElementById('contextMenu');
+            contextMenu.style.display = 'none';
+        }
+        
+        // 复制槽位信息
+        function copySlotInfo(slotNumber) {
+            const item = itemsData.find(item => item.slot === parseInt(slotNumber));
+            if (item && item.parsed && item.parsed.cldata_slots) {
+                navigator.clipboard.writeText(item.parsed.cldata_slots).then(() => {
+                    alert('槽位信息已复制到剪贴板!');
+                }).catch(err => {
+                    console.error('复制失败:', err);
+                });
+            }
+            hideContextMenu();
+        }
+        
+        // 查看槽位信息
+        function viewSlotInfo(slotNumber) {
+            const item = itemsData.find(item => item.slot === parseInt(slotNumber));
+            if (item && item.parsed && item.parsed.cldata_slots) {
+                // 尝试解析JSON格式的槽位信息
+                try {
+                    const slotInfo = JSON.parse(item.parsed.cldata_slots);
+                    alert('槽位信息:\n' + JSON.stringify(slotInfo, null, 2));
+                } catch (e) {
+                    // 如果不是JSON，直接显示原始文本
+                    alert('槽位信息:\n' + item.parsed.cldata_slots);
+                }
+            }
+            hideContextMenu();
+        }
+        
+        // 复制SNBT信息
+        function copySNBTInfo(slotNumber) {
+            const item = itemsData.find(item => item.slot === parseInt(slotNumber));
+            if (item) {
+                navigator.clipboard.writeText(item.snbt).then(() => {
+                    alert('SNBT信息已复制到剪贴板!');
+                }).catch(err => {
+                    console.error('复制失败:', err);
+                });
+            }
+            hideContextMenu();
+        }
+        
+        // 复制获取物品信息
+        function copyGiveCommand(slotNumber) {
+            const item = itemsData.find(item => item.slot === parseInt(slotNumber));
+            if (item && item.parsed) {
+                const command = `/give @p ${item.parsed.item_name}`;
+                navigator.clipboard.writeText(command).then(() => {
+                    alert('获取物品命令已复制到剪贴板!');
+                }).catch(err => {
+                    console.error('复制失败:', err);
+                });
+            }
+            hideContextMenu();
+        }
+        
+        // 图片放大功能
+        function openModal(img) {
+            const modal = document.getElementById('imageModal');
+            const modalImg = document.getElementById('modalImage');
+            modal.style.display = 'block';
+            modalImg.src = img.src;
+        }
+        
+        function closeModal() {
+            const modal = document.getElementById('imageModal');
+            modal.style.display = 'none';
+        }
+        
+        // 点击模态框外部关闭
+        window.onclick = function(event) {
+            const modal = document.getElementById('imageModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+        
+        // 页面加载完成后初始化事件监听
+        document.addEventListener('DOMContentLoaded', function() {
+            // 为所有物品图片添加事件监听
+            const images = document.querySelectorAll('.item-image');
+            images.forEach((img) => {
+                // 获取槽位编号
+                const slotNumber = img.getAttribute('data-slot');
+                
+                // 鼠标悬停显示工具提示
+                img.addEventListener('mouseenter', (e) => showTooltip(e, slotNumber));
+                img.addEventListener('mouseleave', hideTooltip);
+                
+                // 左键点击显示菜单
+                img.addEventListener('click', (e) => showContextMenu(e, slotNumber));
+                
+                // 右键点击放大图片
+                img.addEventListener('contextmenu', function(e) {
+                    e.preventDefault();
+                    openModal(this);
+                });
+            });
+            
+            // 点击页面其他地方隐藏菜单
+            document.addEventListener('click', hideContextMenu);
+        });
+        
+        // 文本样式转换函数
+        function applyTextStyles(textComponent) {
+            if (!textComponent) return '';
+            
+            let style = '';
+            let classes = '';
+            
+            if (textComponent.bold) classes += 'bold ';
+            if (textComponent.italic) classes += 'italic ';
+            if (textComponent.underlined) classes += 'underlined ';
+            if (textComponent.strikethrough) classes += 'strikethrough ';
+            if (textComponent.obfuscated) classes += 'obfuscated ';
+            if (textComponent.color) classes += 'color-' + textComponent.color + ' ';
+            
+            let content = textComponent.text || '';
+            
+            // 处理嵌套文本
+            if (textComponent.extra && Array.isArray(textComponent.extra)) {
+                content += textComponent.extra.map(extra => applyTextStyles(extra)).join('');
+            }
+            
+            return '<span class="' + classes.trim() + '">' + content + '</span>';
+        }
+    </script>
+</body>
+</html>
