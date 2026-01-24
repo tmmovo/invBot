@@ -1,0 +1,125 @@
+{
+  "version": 1,
+  "routes": [
+    {
+      "path": "/*",
+      "serve": "error.html?code=400",
+      "statusCode": 400
+    },
+    {
+      "path": "/*",
+      "serve": "error.html?code=401",
+      "statusCode": 401
+    },
+    {
+      "path": "/*",
+      "serve": "error.html?code=402",
+      "statusCode": 402
+    },
+    {
+      "path": "/*",
+      "serve": "error.html?code=403",
+      "statusCode": 403
+    },
+    {
+      "path": "/*",
+      "serve": "error.html?code=404",
+      "statusCode": 404
+    },
+    {
+      "path": "/*",
+      "serve": "error.html?code=405",
+      "statusCode": 405
+    },
+    {
+      "path": "/*",
+      "serve": "error.html?code=406",
+      "statusCode": 406
+    },
+    {
+      "path": "/*",
+      "serve": "error.html?code=407",
+      "statusCode": 407
+    },
+    {
+      "path": "/*",
+      "serve": "error.html?code=408",
+      "statusCode": 408
+    },
+    {
+      "path": "/*",
+      "serve": "error.html?code=409",
+      "statusCode": 409
+    },
+    {
+      "path": "/*",
+      "serve": "error.html?code=410",
+      "statusCode": 410
+    },
+    {
+      "path": "/*",
+      "serve": "error.html?code=411",
+      "statusCode": 411
+    },
+    {
+      "path": "/*",
+      "serve": "error.html?code=412",
+      "statusCode": 412
+    },
+    {
+      "path": "/*",
+      "serve": "error.html?code=413",
+      "statusCode": 413
+    },
+    {
+      "path": "/*",
+      "serve": "error.html?code=414",
+      "statusCode": 414
+    },
+    {
+      "path": "/*",
+      "serve": "error.html?code=415",
+      "statusCode": 415
+    },
+    {
+      "path": "/*",
+      "serve": "error.html?code=416",
+      "statusCode": 416
+    },
+    {
+      "path": "/*",
+      "serve": "error.html?code=417",
+      "statusCode": 417
+    },
+    {
+      "path": "/*",
+      "serve": "error.html?code=418",
+      "statusCode": 418
+    },
+    {
+      "path": "/*",
+      "serve": "error.html?code=500",
+      "statusCode": 500
+    },
+    {
+      "path": "/*",
+      "serve": "error.html?code=502",
+      "statusCode": 502
+    },
+    {
+      "path": "/*",
+      "serve": "error.html?code=503",
+      "statusCode": 503
+    },
+    {
+      "path": "/*",
+      "serve": "error.html?code=504",
+      "statusCode": 504
+    },
+    {
+      "path": "/*",
+      "serve": "error.html?code=505",
+      "statusCode": 505
+    }
+  ]
+}
