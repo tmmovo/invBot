@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>55的物品清单</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background-color: #1e1e1e;
+            color: #ffffff;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            position: relative;
+        }
+        
+        .toggle-image {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 64px;
+            height: 64px;
+            cursor: pointer;
+            border-radius: 4px;
+            border: 2px solid #444;
+            transition: transform 0.2s ease;
+        }
+        
+        .toggle-image:hover {
+            transform: scale(1.1);
+            border-color: #13C468;
+        }
+        
+        .items-grid {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .item-container {
+            background-color: #2d2d2d;
+            border-radius: 8px;
+            padding: 15px;
+            border: 1px solid #444;
+            position: relative;
+            min-height: 100px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .item-image {
+            width: 64px;
+            height: 64px;
+            cursor: pointer;
+            border-radius: 4px;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: -webkit-crisp-edges;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            transition: transform 0.2s ease;
+        }
+        
+        .item-image:hover {
+            transform: scale(1.5);
+            z-index: 10;
+            position: relative;
+        }
+        
+        .slot-info {
+            font-size: 0.8em;
+            color: #aaa;
+            margin-top: 5px;
+        }
+        
+        .item-name {
+            font-size: 12px;
+            font-weight: bold;
+            color: #fff;
+            margin-top: 5px;
+            text-align: center;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .item-lore {
+            font-size: 10px;
+            color: #ccc;
+            margin-top: 3px;
+            text-align: center;
+            max-width: 100%;
+            max-height: 40px;
+            overflow: hidden;
+            line-height: 1.2;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+        }
+        
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid #666;
+            border-radius: 4px;
+            padding: 10px;
+            z-index: 1000;
+            max-width: 300px;
+            display: none;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        
+        .tooltip-name {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .tooltip-lore {
+            font-size: 12px;
+            white-space: pre-line;
+        }
+        
+        .context-menu {
+            position: absolute;
+            background: #333;
+            border: 1px solid #666;
+            border-radius: 8px;
+            padding: 5px 0;
+            z-index: 1001;
+            display: none;
+            min-width: 150px;
+            overflow: hidden;
+        }
+        
+        .context-menu-item {
+            padding: 8px 15px;
+            cursor: pointer;
+            font-size: 12px;
+            border-radius: 6px;
+            margin: 2px 5px;
+            transition: background-color 0.2s ease;
+        }
+        
+        .context-menu-item:hover {
+            background: #13C468;
+            color: white;
+        }
+        
+        .empty-slot {
+            background-color: #1a1a1a;
+            border: 1px dashed #444;
+            color: #666;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9em;
+        }
+        
+        .image-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.8);
+        }
+        
+        .modal-content {
+            margin: auto;
+            display: block;
+            max-width: 90%;
+            max-height: 90%;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: -webkit-crisp-edges;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+        
+        .close-modal {
+            position: absolute;
+            top: 15px;
+            right: 35px;
+            color: #fff;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .close-modal:hover {
+            color: #ccc;
+        }
+        
+        .bold { font-weight: bold; }
+        .italic { font-style: italic; }
+        .underlined { text-decoration: underline; }
+        .strikethrough { text-decoration: line-through; }
+        .obfuscated { text-decoration: overline; }
+        
+        /* 颜色映射 */
+        .color-black { color: #000000; }
+        .color-dark_blue { color: #0000AA; }
+        .color-dark_green { color: #00AA00; }
+        .color-dark_aqua { color: #00AAAA; }
+        .color-dark_red { color: #AA0000; }
+        .color-dark_purple { color: #AA00AA; }
+        .color-gold { color: #FFAA00; }
+        .color-gray { color: #AAAAAA; }
+        .color-dark_gray { color: #555555; }
+        .color-blue { color: #5555FF; }
+        .color-green { color: #55FF55; }
+        .color-aqua { color: #55FFFF; }
+        .color-red { color: #FF5555; }
+        .color-light_purple { color: #FF55FF; }
+        .color-yellow { color: #FFFF55; }
+        .color-white { color: #FFFFFF; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <fcv></fcv>
+            <!-- <img id="toggleImage" class="toggle-image" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAADIAgMAAADQNkYNAAAACVBMVEWxSv8AAAAAAAD2F6kLAAAAA3RSTlP//wDXyg1BAAAFBElEQVR4nO1aO47bSBBtPtCAoEiBnStczCl0hA08hkMdpY+i0LAm8BF0CmNC5TOBooGAFcgFxf7Ur0n22tg1sK6Aanb363pV1X+q+epqBe4nQ972tZBub2EwBbmaejAFOQ/cfBXED4/nGkg3Pvf1Tn6rgFzD7+dqLa7z9dF/rod09RC3r4e8LYWsctLXd/7nhRDYfsYyLfceugTidU9wRUh/PD45tzWZwUS8PDnXn9zaZAYLcTwNz1fnvlrMYOkI5JxzXzKzKchfdx2h+KA7DRSi/xZTA3TtFTMoyBN/fVDMoGjl5OX+TNR8CZJoRVlLN6OsJMpBGIM5JVlNZ0OGWCjx/Be89NWC/MGNAS8lUXRuI5gEYzBnPHFAMIZDxkhE2RmTgBOQnvEilYLhXkNurGKTk1tqP8q83ufkitoPWonxapIpqVZ3f7bUFJJ+5Nb4wqT0mjU82tH0EpJ4NR8FIlY7C0jmpRDRv1cBSS7+kLLyqk+mNGgXZ1d1+7Tqr7LLoDnkeFyNVd9RyEnF45wn1lDPM0ivgz5UiGp8chmU9VlJR4dvth/S+neS+p7af2WQEx+KqReqsQjRJu2MgR5dWjsKCdbTbspniRHpCeSmeHF+2X6I8t3MduRMIBc5eLN4PmeAO4yZEivRIX9VxAxT2AI+CLjDdlZZZ68vt7IpsfLdZZ0kJqLi9W7EZcjFMmXLjBm94YWW3fRiNEqE2LPxwaoKmqmsj2pIzzxHg3tmfRc20w/+sCf2hynT3PbE7fd3sbIMco2QG3VYtnYfVpYrdSAMh+UOcg3VmMvgtNDIKWZdhFzs7pLKPYHD0MIOEupc5SjEGPfR5rOGnFxJVrKux9z4SoPRJLZQQPqLMbtE+8fAeAKZErJ+3eU8DUE581YY+Cvusm25HVFnieokfJ0L0haC/1A8fm4XxCWDVwTOd1WGQfTwh3ktkh5muljQEFznB8ACLcj2bIdt1hJihzSfrYedqTmshKzHI9nxcTycYWaEZXmJhyHkPLvvJznFZQtuofSJDJZCbinibaHG908O+VAZqt/mtKg7myBL7mHuMtjRz0K6ei3O10PO9RBb4KoF/xfIdg5ymkL3ErJbFv1mllihDBMQvYGZHGJiGqeCnJycmG8/IS6bZZXbH9NinHaFXP6bbtkWr21YB9z868SarNwWupXCjxG7lKvdNGS3pPmwlaJaJsJPCcBVC8afzUwsT2Q44h9rcdOB6Q1IO+1ldryBqxZQlxe9fKHBQ5Fy0Ui4xeGP+2gYrQ2zni9rR/jdTLnsxiZWGGXb6etMhN+WMFjJGfxk3q82pBBi/RI3DnAGhS/5Ej3TVcTc2EbYcbFDu7xvQUxsysEU9y0wi5nIZhAToREjMvK2CTERqBo98yK6FCQLxUzlIKV2BWZBb2NANoXr8W9y6UZKxbyT7a+NAWnsq/5XNaCQC3eWufGNnFMhqQs1xucF5GRkS9WkdGtCWvH5iX3y2ZiQRlfMYH0dz7P7gHnJt+XOhrxPqf6Yv6iJIsf2Y7SpOyYLneZQKmDCbg9AX4p7rLYIaUsQ1haY/gIzno9yayXtYG/qYnyUPycgzmQmblvAX2nISpmYbNBUjUnapoGYKTdawVwF3Qhma6g2oHiIr0L5k08Z0rBm3+lIQeWwWhxf3sMQLsa3K2duex53hS9qEzulDx/zU0nzC/y3xxS4asFvSKWgFuB+Q6rll3Xy33ZIH2KKdUhdAAAAAElFTkSuQmCC" alt="切换图片"> -->
+            <h1>55的物品清单</h1>
+            <p>共 33 个物品 • 生成时间: 1/28/2026, 7:49:35 PM</p>
+            <p>声明：物品查询功能为纯公益性质，不涉及任何实体货币交易，查询结果仅供参考，不保证100%准确，请勿完全依赖，因使用本功能产生的问题，提供方不承担任何责任，该功能完全使用游戏内合法功能，不会使用其他任何开挂、作弊、 hack 等手段获取物品信息</p>
+            <p>由于其公益性质，需要收取游戏内的"金币"，但绝对不会涉及实体货币，图片加载可能会有延迟，请耐心等待，我们会慢慢改进服务体验</p>
+            <p>左键点击物品以查看详细信息</p>
+        </div>
+        <div class="items-grid" id="itemsContainer">
+            <div class="item-container">
+        <img src="images/chainmail_helmet.png" class="item-image" alt="chainmail_helmet" data-slot="0" data-index="0">
+        <div class="slot-info">槽位: 0</div>
+    </div>
+<div class="item-container">
+        <img src="images/chainmail_leggings.png" class="item-image" alt="chainmail_leggings" data-slot="1" data-index="1">
+        <div class="slot-info">槽位: 1</div>
+    </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 2</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 3</div>
+        </div>
+<div class="item-container">
+        <img src="images/black_stained_glass_pane.png" class="item-image" alt=" " data-slot="4" data-index="4">
+        <div class="slot-info">槽位: 4</div>
+    </div>
+<div class="item-container">
+        <img src="images/ender_chest.png" class="item-image" alt="Open ender chest" data-slot="5" data-index="5">
+        <div class="slot-info">槽位: 5</div>
+    </div>
+<div class="item-container">
+        <img src="images/black_stained_glass_pane.png" class="item-image" alt=" " data-slot="6" data-index="6">
+        <div class="slot-info">槽位: 6</div>
+    </div>
+<div class="item-container">
+        <img src="images/black_stained_glass_pane.png" class="item-image" alt=" " data-slot="7" data-index="7">
+        <div class="slot-info">槽位: 7</div>
+    </div>
+<div class="item-container">
+        <img src="images/black_stained_glass_pane.png" class="item-image" alt=" " data-slot="8" data-index="8">
+        <div class="slot-info">槽位: 8</div>
+    </div>
+<div class="item-container">
+        <img src="images/chainmail_chestplate.png" class="item-image" alt="chainmail_chestplate" data-slot="9" data-index="9">
+        <div class="slot-info">槽位: 9</div>
+    </div>
+<div class="item-container">
+        <img src="images/chainmail_boots.png" class="item-image" alt="chainmail_boots" data-slot="10" data-index="10">
+        <div class="slot-info">槽位: 10</div>
+    </div>
+<div class="item-container">
+        <img src="images/black_stained_glass_pane.png" class="item-image" alt=" " data-slot="11" data-index="11">
+        <div class="slot-info">槽位: 11</div>
+    </div>
+<div class="item-container">
+        <img src="images/black_stained_glass_pane.png" class="item-image" alt=" " data-slot="12" data-index="12">
+        <div class="slot-info">槽位: 12</div>
+    </div>
+<div class="item-container">
+        <img src="images/black_stained_glass_pane.png" class="item-image" alt=" " data-slot="13" data-index="13">
+        <div class="slot-info">槽位: 13</div>
+    </div>
+<div class="item-container">
+        <img src="images/black_stained_glass_pane.png" class="item-image" alt=" " data-slot="14" data-index="14">
+        <div class="slot-info">槽位: 14</div>
+    </div>
+<div class="item-container">
+        <img src="images/black_stained_glass_pane.png" class="item-image" alt=" " data-slot="15" data-index="15">
+        <div class="slot-info">槽位: 15</div>
+    </div>
+<div class="item-container">
+        <img src="images/black_stained_glass_pane.png" class="item-image" alt=" " data-slot="16" data-index="16">
+        <div class="slot-info">槽位: 16</div>
+    </div>
+<div class="item-container">
+        <img src="images/black_stained_glass_pane.png" class="item-image" alt=" " data-slot="17" data-index="17">
+        <div class="slot-info">槽位: 17</div>
+    </div>
+<div class="item-container">
+        <img src="images/paper.png" class="item-image" alt="菜单" data-slot="18" data-index="18">
+        <div class="slot-info">槽位: 18</div>
+    </div>
+<div class="item-container">
+        <img src="images/paper.png" class="item-image" alt="新手教程" data-slot="19" data-index="19">
+        <div class="slot-info">槽位: 19</div>
+    </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 20</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 21</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 22</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 23</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 24</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 25</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 26</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 27</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 28</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 29</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 30</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 31</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 32</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 33</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 34</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 35</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 36</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 37</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 38</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 39</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 40</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 41</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 42</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 43</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 44</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 45</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 46</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 47</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 48</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 49</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 50</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 51</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 52</div>
+        </div>
+<div class="item-container empty-slot">
+            <div>空槽位</div>
+            <div class="slot-info">槽位: 53</div>
+        </div>
+        </div>
+        
+        <!-- 工具提示 -->
+        <div id="tooltip" class="tooltip"></div>
+        
+        <!-- 右键菜单 -->
+        <div id="contextMenu" class="context-menu"></div>
+        
+        <!-- 图片放大模态框 -->
+        <div id="imageModal" class="image-modal">
+            <span class="close-modal" onclick="closeModal()">&times;</span>
+            <img class="modal-content" id="modalImage">
+        </div>
+    </div>
+    
+    <script>
+        // 全局变量存储物品数据
+        // const itemsData = [{"slot":0,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"CMIGUIIcon\":{\"type\":\"string\",\"value\":\"LIProtection\"},\"Damage\":{\"type\":\"int\",\"value\":0}}}","parsed":{"item_name":"chainmail_helmet","display_name":null,"lore_text":null,"cldata_slots":null}},{"slot":1,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"CMIGUIIcon\":{\"type\":\"string\",\"value\":\"LIProtection\"},\"Damage\":{\"type\":\"int\",\"value\":0}}}","parsed":{"item_name":"chainmail_leggings","display_name":null,"lore_text":null,"cldata_slots":null}},{"slot":2,"parsed":{"item_name":"empty"}},{"slot":3,"parsed":{"item_name":"empty"}},{"slot":4,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"CMIGUIIcon\":{\"type\":\"string\",\"value\":\"LIProtection\"},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"}],\\\"text\\\":\\\"\\\"}\"}}}}}","parsed":{"item_name":"black_stained_glass_pane","display_name":"<span class=\"\"><span class=\"\"> </span></span>","lore_text":null,"cldata_slots":null}},{"slot":5,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"CMIGUIIcon\":{\"type\":\"string\",\"value\":\"LIProtection\"},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gray\\\",\\\"text\\\":\\\"Open ender chest\\\"}],\\\"text\\\":\\\"\\\"}\"}}}}}","parsed":{"item_name":"ender_chest","display_name":"<span class=\"\"><span class=\"color-gray\">Open ender chest</span></span>","lore_text":null,"cldata_slots":null}},{"slot":6,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"CMIGUIIcon\":{\"type\":\"string\",\"value\":\"LIProtection\"},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"}],\\\"text\\\":\\\"\\\"}\"}}}}}","parsed":{"item_name":"black_stained_glass_pane","display_name":"<span class=\"\"><span class=\"\"> </span></span>","lore_text":null,"cldata_slots":null}},{"slot":7,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"CMIGUIIcon\":{\"type\":\"string\",\"value\":\"LIProtection\"},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"}],\\\"text\\\":\\\"\\\"}\"}}}}}","parsed":{"item_name":"black_stained_glass_pane","display_name":"<span class=\"\"><span class=\"\"> </span></span>","lore_text":null,"cldata_slots":null}},{"slot":8,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"CMIGUIIcon\":{\"type\":\"string\",\"value\":\"LIProtection\"},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"}],\\\"text\\\":\\\"\\\"}\"}}}}}","parsed":{"item_name":"black_stained_glass_pane","display_name":"<span class=\"\"><span class=\"\"> </span></span>","lore_text":null,"cldata_slots":null}},{"slot":9,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"CMIGUIIcon\":{\"type\":\"string\",\"value\":\"LIProtection\"},\"Damage\":{\"type\":\"int\",\"value\":0}}}","parsed":{"item_name":"chainmail_chestplate","display_name":null,"lore_text":null,"cldata_slots":null}},{"slot":10,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"CMIGUIIcon\":{\"type\":\"string\",\"value\":\"LIProtection\"},\"Damage\":{\"type\":\"int\",\"value\":0}}}","parsed":{"item_name":"chainmail_boots","display_name":null,"lore_text":null,"cldata_slots":null}},{"slot":11,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"CMIGUIIcon\":{\"type\":\"string\",\"value\":\"LIProtection\"},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"}],\\\"text\\\":\\\"\\\"}\"}}}}}","parsed":{"item_name":"black_stained_glass_pane","display_name":"<span class=\"\"><span class=\"\"> </span></span>","lore_text":null,"cldata_slots":null}},{"slot":12,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"CMIGUIIcon\":{\"type\":\"string\",\"value\":\"LIProtection\"},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"}],\\\"text\\\":\\\"\\\"}\"}}}}}","parsed":{"item_name":"black_stained_glass_pane","display_name":"<span class=\"\"><span class=\"\"> </span></span>","lore_text":null,"cldata_slots":null}},{"slot":13,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"CMIGUIIcon\":{\"type\":\"string\",\"value\":\"LIProtection\"},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"}],\\\"text\\\":\\\"\\\"}\"}}}}}","parsed":{"item_name":"black_stained_glass_pane","display_name":"<span class=\"\"><span class=\"\"> </span></span>","lore_text":null,"cldata_slots":null}},{"slot":14,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"CMIGUIIcon\":{\"type\":\"string\",\"value\":\"LIProtection\"},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"}],\\\"text\\\":\\\"\\\"}\"}}}}}","parsed":{"item_name":"black_stained_glass_pane","display_name":"<span class=\"\"><span class=\"\"> </span></span>","lore_text":null,"cldata_slots":null}},{"slot":15,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"CMIGUIIcon\":{\"type\":\"string\",\"value\":\"LIProtection\"},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"}],\\\"text\\\":\\\"\\\"}\"}}}}}","parsed":{"item_name":"black_stained_glass_pane","display_name":"<span class=\"\"><span class=\"\"> </span></span>","lore_text":null,"cldata_slots":null}},{"slot":16,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"CMIGUIIcon\":{\"type\":\"string\",\"value\":\"LIProtection\"},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"}],\\\"text\\\":\\\"\\\"}\"}}}}}","parsed":{"item_name":"black_stained_glass_pane","display_name":"<span class=\"\"><span class=\"\"> </span></span>","lore_text":null,"cldata_slots":null}},{"slot":17,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"CMIGUIIcon\":{\"type\":\"string\",\"value\":\"LIProtection\"},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"text\\\":\\\" \\\"}],\\\"text\\\":\\\"\\\"}\"}}}}}","parsed":{"item_name":"black_stained_glass_pane","display_name":"<span class=\"\"><span class=\"\"> </span></span>","lore_text":null,"cldata_slots":null}},{"slot":18,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"itemsadder\":{\"type\":\"compound\",\"value\":{\"id\":{\"type\":\"string\",\"value\":\"pixel_meng_menu\"},\"namespace\":{\"type\":\"string\",\"value\":\"mcicons\"}}},\"CustomModelData\":{\"type\":\"int\",\"value\":10291},\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"菜单\\\"}],\\\"text\\\":\\\"\\\"}\"},\"Lore\":{\"type\":\"list\",\"value\":{\"type\":\"string\",\"value\":[\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\" ▣ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"右键打开菜单页面\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"像素绑定\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§-\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"@55\\\"}],\\\"text\\\":\\\"\\\"}\"]}}}}}}","parsed":{"item_name":"paper","display_name":"<span class=\"\"><span class=\"color-yellow\">菜单</span></span>","lore_text":"\n ▣ 右键打开菜单页面\n像素绑定\n§-@55","cldata_slots":null}},{"slot":19,"snbt":"{\"type\":\"compound\",\"name\":\"\",\"value\":{\"display\":{\"type\":\"compound\",\"value\":{\"Name\":{\"type\":\"string\",\"value\":\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"新手教程\\\"}],\\\"text\\\":\\\"\\\"}\"},\"Lore\":{\"type\":\"list\",\"value\":{\"type\":\"string\",\"value\":[\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\"\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"white\\\",\\\"text\\\":\\\" ▣ \\\"},{\\\"italic\\\":false,\\\"color\\\":\\\"yellow\\\",\\\"text\\\":\\\"右键打开-新手教程\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"bold\\\":false,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"像素绑定\\\"}],\\\"text\\\":\\\"\\\"}\",\"{\\\"extra\\\":[{\\\"text\\\":\\\"§-\\\"},{\\\"bold\\\":true,\\\"italic\\\":false,\\\"underlined\\\":false,\\\"strikethrough\\\":false,\\\"obfuscated\\\":false,\\\"color\\\":\\\"gold\\\",\\\"text\\\":\\\"@55\\\"}],\\\"text\\\":\\\"\\\"}\"]}}}}}}","parsed":{"item_name":"paper","display_name":"<span class=\"\"><span class=\"color-yellow\">新手教程</span></span>","lore_text":"\n ▣ 右键打开-新手教程\n像素绑定\n§-@55","cldata_slots":null}},{"slot":20,"parsed":{"item_name":"empty"}},{"slot":21,"parsed":{"item_name":"empty"}},{"slot":22,"parsed":{"item_name":"empty"}},{"slot":23,"parsed":{"item_name":"empty"}},{"slot":24,"parsed":{"item_name":"empty"}},{"slot":25,"parsed":{"item_name":"empty"}},{"slot":26,"parsed":{"item_name":"empty"}},{"slot":27,"parsed":{"item_name":"empty"}},{"slot":28,"parsed":{"item_name":"empty"}},{"slot":29,"parsed":{"item_name":"empty"}},{"slot":30,"parsed":{"item_name":"empty"}},{"slot":31,"parsed":{"item_name":"empty"}},{"slot":32,"parsed":{"item_name":"empty"}},{"slot":33,"parsed":{"item_name":"empty"}},{"slot":34,"parsed":{"item_name":"empty"}},{"slot":35,"parsed":{"item_name":"empty"}},{"slot":36,"parsed":{"item_name":"empty"}},{"slot":37,"parsed":{"item_name":"empty"}},{"slot":38,"parsed":{"item_name":"empty"}},{"slot":39,"parsed":{"item_name":"empty"}},{"slot":40,"parsed":{"item_name":"empty"}},{"slot":41,"parsed":{"item_name":"empty"}},{"slot":42,"parsed":{"item_name":"empty"}},{"slot":43,"parsed":{"item_name":"empty"}},{"slot":44,"parsed":{"item_name":"empty"}},{"slot":45,"parsed":{"item_name":"empty"}},{"slot":46,"parsed":{"item_name":"empty"}},{"slot":47,"parsed":{"item_name":"empty"}},{"slot":48,"parsed":{"item_name":"empty"}},{"slot":49,"parsed":{"item_name":"empty"}},{"slot":50,"parsed":{"item_name":"empty"}},{"slot":51,"parsed":{"item_name":"empty"}},{"slot":52,"parsed":{"item_name":"empty"}},{"slot":53,"parsed":{"item_name":"empty"}}];
+        
+        // 工具提示显示
+        function showTooltip(event, slotNumber) {
+            const tooltip = document.getElementById('tooltip');
+            // 根据槽位编号查找物品数据
+            const item = itemsData.find(item => item.slot === parseInt(slotNumber));
+            
+            if (!item || !item.parsed) return;
+            
+            let tooltipHTML = '';
+            
+            // 显示物品名称
+            if (item.parsed && item.parsed.display_name) {
+                tooltipHTML += '<div class="tooltip-name">' + item.parsed.display_name + '</div>';
+            } else if (item.parsed && item.parsed.item_name) {
+                tooltipHTML += '<div class="tooltip-name">' + item.parsed.item_name + '</div>';
+            }
+            
+            // 显示Lore信息
+            if (item.parsed && item.parsed.lore_text) {
+                tooltipHTML += '<div class="tooltip-lore">' + item.parsed.lore_text + '</div>';
+            }
+            
+            if (tooltipHTML) {
+                tooltip.innerHTML = tooltipHTML;
+                tooltip.style.display = 'block';
+                tooltip.style.left = (event.pageX + 10) + 'px';
+                tooltip.style.top = (event.pageY + 10) + 'px';
+            }
+        }
+        
+        // 隐藏工具提示
+        function hideTooltip() {
+            const tooltip = document.getElementById('tooltip');
+            tooltip.style.display = 'none';
+        }
+        
+        // 显示左键菜单
+        function showContextMenu(event, slotNumber) {
+            event.preventDefault();
+            event.stopPropagation();
+            
+            const contextMenu = document.getElementById('contextMenu');
+            // 根据槽位编号查找物品数据
+            const item = itemsData.find(item => item.slot === parseInt(slotNumber));
+            
+            if (!item) {
+                console.log('未找到物品数据，槽位:', slotNumber);
+                return;
+            }
+            
+            let menuHTML = '';
+            
+            // 如果有CLData，显示复制槽位信息和查看槽位选项
+            if (item.parsed && item.parsed.cldata_slots) {
+                menuHTML += '<div class="context-menu-item" onclick="copySlotInfo(' + slotNumber + ')">复制槽位信息</div>';
+                menuHTML += '<div class="context-menu-item" onclick="viewSlotInfo(' + slotNumber + ')">查看槽位</div>';
+            }
+            
+            // 总是显示复制SNBT信息选项
+            menuHTML += '<div class="context-menu-item" onclick="copySNBTInfo(' + slotNumber + ')">复制SNBT信息</div>';
+            
+            // 显示复制获取物品信息选项
+            menuHTML += '<div class="context-menu-item" onclick="copyGiveCommand(' + slotNumber + ')">复制获取物品信息</div>';
+            
+            contextMenu.innerHTML = menuHTML;
+            contextMenu.style.display = 'block';
+            contextMenu.style.left = event.pageX + 'px';
+            contextMenu.style.top = event.pageY + 'px';
+            
+            console.log('显示菜单，槽位:', slotNumber, '物品数据:', item);
+        }
+        
+        // 隐藏右键菜单
+        function hideContextMenu() {
+            const contextMenu = document.getElementById('contextMenu');
+            contextMenu.style.display = 'none';
+        }
+        
+        // 复制槽位信息
+        function copySlotInfo(slotNumber) {
+            const item = itemsData.find(item => item.slot === parseInt(slotNumber));
+            if (item && item.parsed && item.parsed.cldata_slots) {
+                navigator.clipboard.writeText(item.parsed.cldata_slots).then(() => {
+                    alert('槽位信息已复制到剪贴板!');
+                }).catch(err => {
+                    console.error('复制失败:', err);
+                });
+            }
+            hideContextMenu();
+        }
+        
+        // 查看槽位信息
+        function viewSlotInfo(slotNumber) {
+            const item = itemsData.find(item => item.slot === parseInt(slotNumber));
+            if (item && item.parsed && item.parsed.cldata_slots) {
+                // 尝试解析JSON格式的槽位信息
+                try {
+                    const slotInfo = JSON.parse(item.parsed.cldata_slots);
+                    alert('槽位信息:\n' + JSON.stringify(slotInfo, null, 2));
+                } catch (e) {
+                    // 如果不是JSON，直接显示原始文本
+                    alert('槽位信息:\n' + item.parsed.cldata_slots);
+                }
+            }
+            hideContextMenu();
+        }
+        
+        // 复制SNBT信息
+        function copySNBTInfo(slotNumber) {
+            const item = itemsData.find(item => item.slot === parseInt(slotNumber));
+            if (item) {
+                navigator.clipboard.writeText(item.snbt).then(() => {
+                    alert('SNBT信息已复制到剪贴板!');
+                }).catch(err => {
+                    console.error('复制失败:', err);
+                });
+            }
+            hideContextMenu();
+        }
+        
+        // 复制获取物品信息
+        function copyGiveCommand(slotNumber) {
+            const item = itemsData.find(item => item.slot === parseInt(slotNumber));
+            if (item && item.parsed) {
+                const command = `/give @p ${item.parsed.item_name}`;
+                navigator.clipboard.writeText(command).then(() => {
+                    alert('获取物品命令已复制到剪贴板!');
+                }).catch(err => {
+                    console.error('复制失败:', err);
+                });
+            }
+            hideContextMenu();
+        }
+        
+        // 图片放大功能
+        function openModal(img) {
+            const modal = document.getElementById('imageModal');
+            const modalImg = document.getElementById('modalImage');
+            modal.style.display = 'block';
+            modalImg.src = img.src;
+        }
+        
+        function closeModal() {
+            const modal = document.getElementById('imageModal');
+            modal.style.display = 'none';
+        }
+        
+        // 点击模态框外部关闭
+        window.onclick = function(event) {
+            const modal = document.getElementById('imageModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+        
+        // 页面加载完成后初始化事件监听
+        document.addEventListener('DOMContentLoaded', function() {
+            // 为切换图片按钮添加点击事件
+            const toggleImg = document.getElementById('toggleImage');
+            if (toggleImg) {
+                toggleImg.addEventListener('click', toggleImage);
+            }
+            
+            // 为所有物品图片添加事件监听
+            const images = document.querySelectorAll('.item-image');
+            images.forEach((img) => {
+                // 获取槽位编号
+                const slotNumber = img.getAttribute('data-slot');
+                
+                // 鼠标悬停显示工具提示
+                img.addEventListener('mouseenter', (e) => showTooltip(e, slotNumber));
+                img.addEventListener('mouseleave', hideTooltip);
+                
+                // 左键点击显示菜单
+                img.addEventListener('click', (e) => showContextMenu(e, slotNumber));
+                
+                // 右键点击放大图片
+                img.addEventListener('contextmenu', function(e) {
+                    e.preventDefault();
+                    openModal(this);
+                });
+            });
+            
+            // 点击页面其他地方隐藏菜单
+            document.addEventListener('click', hideContextMenu);
+        });
+        
+        // 文本样式转换函数
+        function applyTextStyles(textComponent) {
+            if (!textComponent) return '';
+            
+            let style = '';
+            let classes = '';
+            
+            if (textComponent.bold) classes += 'bold ';
+            if (textComponent.italic) classes += 'italic ';
+            if (textComponent.underlined) classes += 'underlined ';
+            if (textComponent.strikethrough) classes += 'strikethrough ';
+            if (textComponent.obfuscated) classes += 'obfuscated ';
+            if (textComponent.color) classes += 'color-' + textComponent.color + ' ';
+            
+            let content = textComponent.text || '';
+            
+            // 处理嵌套文本
+            if (textComponent.extra && Array.isArray(textComponent.extra)) {
+                content += textComponent.extra.map(extra => applyTextStyles(extra)).join('');
+            }
+            
+            return '<span class="' + classes.trim() + '">' + content + '</span>';
+        }
+    </script>
+    <script>
+        // 检测并应用FCV标签的图片切换效果
+        function applyFCVImageToggle() {
+            // 检查是否存在fcv标签
+            const fcvElements = document.querySelectorAll('fcv');
+            
+            if (fcvElements.length === 0) {
+                console.log('未找到fcv标签');
+                return;
+            }
+            
+            console.log(`找到 ${fcvElements.length} 个fcv标签`);
+            
+            // 使用完整的Base64图片数据
+            const image1 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAADIAgMAAADQNkYNAAAACVBMVEWxSv8AAAAAAAD2F6kLAAAAA3RSTlP//wDXyg1BAAAFBElEQVR4nO1aO47bSBBtPtCAoEiBnStczCl0hA08hkMdpY+i0LAm8BF0CmNC5TOBooGAFcgFxf7Ur0n22tg1sK6Aanb363pV1X+q+epqBe4nQ972tZBub2EwBbmaejAFOQ/cfBXED4/nGkg3Pvf1Tn6rgFzD7+dqLa7z9dF/rod09RC3r4e8LYWsctLXd/7nhRDYfsYyLfceugTidU9wRUh/PD45tzWZwUS8PDnXn9zaZAYLcTwNz1fnvlrMYOkI5JxzXzKzKchfdx2h+KA7DRSi/xZTA3TtFTMoyBN/fVDMoGjl5OX+TNR8CZJoRVlLN6OsJMpBGIM5JVlNZ0OGWCjx/Be89NWC/MGNAS8lUXRuI5gEYzBnPHFAMIZDxkhE2RmTgBOQnvEilYLhXkNurGKTk1tqP8q83ufkitoPWonxapIpqVZ3f7bUFJJ+5Nb4wqT0mjU82tH0EpJ4NR8FIlY7C0jmpRDRv1cBSS7+kLLyqk+mNGgXZ1d1+7Tqr7LLoDnkeFyNVd9RyEnF45wn1lDPM0ivgz5UiGp8chmU9VlJR4dvth/S+neS+p7af2WQEx+KqReqsQjRJu2MgR5dWjsKCdbTbspniRHpCeSmeHF+2X6I8t3MduRMIBc5eLN4PmeAO4yZEivRIX9VxAxT2AI+CLjDdlZZZ68vt7IpsfLdZZ0kJqLi9W7EZcjFMmXLjBm94YWW3fRiNEqE2LPxwaoKmqmsj2pIzzxHg3tmfRc20w/+sCf2hynT3PbE7fd3sbIMco2QG3VYtnYfVpYrdSAMh+UOcg3VmMvgtNDIKWZdhFzs7pLKPYHD0MIOEupc5SjEGPfR5rOGnFxJVrKux9z4SoPRJLZQQPqLMbtE+8fAeAKZErJ+3eU8DUE581YY+Cvusm25HVFnieokfJ0L0haC/1A8fm4XxCWDVwTOd1WGQfTwh3ktkh5muljQEFznB8ACLcj2bIdt1hJihzSfrYedqTmshKzHI9nxcTycYWaEZXmJhyHkPLvvJznFZQtuofSJDJZCbinibaHG908O+VAZqt/mtKg7myBL7mHuMtjRz0K6ei3O10PO9RBb4KoF/xfIdg5ymkL3ErJbFv1mllihDBMQvYGZHGJiGqeCnJycmG8/IS6bZZXbH9NinPaFXP6bbtkWr21YB9z868SarNwWupXCjxG7lKvdNGS3pPmwlaJaJsJPCcBVC8afzUwsT2Q44h9rcdOB6Q1IO+1ldryBqxZQlxe9fKHBQ5Fy0Ui4xeGP+2gYrQ2zni9rR/jdTLnsxiZWGGXb6etMhN+WMFjJGfxk3q82pBBi/RI3DnAGhS/5Ej3TVcTc2EbYcbFDu7xvQUxsysEU9y0wi5nIZhAToREjMvK2CTERqBo98yK6FCQLxUzlIKV2BWZBb2NANoXr8W9y6UZKxbyT7a+NAWnsq/5XNaCQC3eWufGNnFMhqQs1xucF5GRkS9WkdGtCWvH5iX3y2ZiQRlfMYH0dz7P7gHnJt+XOhrxPqf6Yv6iJIsf2Y7SpOyYLneZQKmDCbg9AX4p7rLYIaUsQ1haY/gIzno9yayXtYG/qYnyUPycgzmQmblvAX2nISpmYbNBUjUnapoGYKTdawVwF3Qhma6g2oHiIr0L5k08Z0rBm3+lIQeWwWhxf3sMQLsa3K2duex53hS9qEzulDx/zU0nzC/y3xxS4asFvSKWgFuB+Q6rll3Xy33ZIH2KKdUhdAAAAAElFTkSuQmCC';
+            const image2 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAADIAgMAAADQNkYNAAAADFBMVEUa9ZP///+xSv8AAADhLAybAAAABHRSTlP///8AQCqp9AAABRhJREFUeJztWUtu4zgQLT9nYQQG7CN4GfTKBxggOkWQZR9FR5llkFOogT6AV0GWPoIDCA0vImkgSxSrikVKnB70DDBdC4kS+VivqvjnqqNcAf3DkI+98XOVItbc0e6Sp6U29SAFOfXciixiq/6x/szQ0gzPfYaW5m54d8u11OP7bjnESVMsJvbhrJAeAC2QwQ9ZENrnQz6WQrY+WWTGhaQDkNCyZugip40NwjoBKCFV2BIoqqV9JryIzvJYpbW8PRO1Je1U3zGb3CBPt+c7UbcymMFAvA2vlog+jUaDEPGj9Om1d9Q+Dmm/ulQP3VUBMwSQZ/n5GDBDQMsnz7fnRK2IQSZaTnbazYgrcXJRxmBOiVfT2JA+FoFU0hjI3HcL8oc0BjKXRZHooPrNaAzmjGcOGI2RkLOtkg0CpCCt4OVlXXH7wbOusdqO3H7EeT345Jbbv+qCruWUvLCPsat1ulfyOL5Kayo2KMGMI17taBaa2JPJiTPbXaQWz+sl1s5qRWxy8Zfplx/IRjcriHMxpoA2+2nW3/omAwrEx6Mm+h7mwydLraSPthvyx9ZcCEgbBr0v8F3YfxIQZ71X0vDu6+2Htv5eU99z+2sBKWVXnFphrac0qDqZ8Y4en1obDhmt32jENEoM9hcMcg14SX7efqj8cmY5cmKQc3weLOSYAVm9MGUrjBlcVgfVGqaICbwXSIcJU9bSmEpBrqmFQ+Fd1uhCKipVMOf3AuEwZcpRGDN4o1BayvRkNIiD2KPxxfIG+M/AeqeGtcyTK9UK65vVIIVTc+LegMXHjbrf1MzSS+0gV+4wb+1+nFlq7kBM2d4HvoHUYzHhMlAoPHIBs8ZBzja84eOXg8PQUkSWpAYxo987m08hpKSYMGMGkgXm+tfUGU1iCwWsvdjsKh+YikFSwuavm5zSELa38ALfxGC7a6sVIovUAkhlkUMk+I9dL9Mnwx0XxMW3si3TIldVhkHMB1VW9NdMS7yJjRpG11U9DMvqHu059susJcQu03i261emSyC77uKWa92nsyXew7y8uc0Q/L8ZXOmmLdBCaadKsRRyTc/aRPRttZK71PPc7Gie2Yyy5BzmJr0d7SykyddCRT7klA+xBZQt+L9AjnOQMoVm+zSkSuupFbPEzKmClp6PLYE8dt0wriQh54RCvn1GqlxKy2FZ4c3PaTF2+0rO/06z3ESPbZyU3kv4hcTgldvCl1L4OWLneLFrztoyLAtaFH5OAJQtGF6HmViWbCmFv61lxgmtAdmkvSy2N6BsAX9FvXwWpy4Uoxw1EtbPJCGydq+VHo6ldozvQ8plV7EohpF31CO4rAnje8MYbPUIXorxEfJ9y1yr+UudOIAMCp/+EN3TDYhRyXLZUb2vZyoJlzjEg6nOW2BmC9HVwCXGSozI6NMmqITRMs9KPzSLgFnwB1OqjDC76oKYUofI8fhXve3ClHL/SttffjpFkFJH/e9BTfCZpWWu+2LloKkrNcb1AnzSseVqpvQmvRV9M6582GICVvI5BJe2LeVEZ8S8mY3kjqX9sXD79CqP/dmJMcWvBoS8Zo/8iH4cYpBNFLKJQQ5xlWWElzmMJ5lJ7RBfwcH4IH8mIGQyQ/LzwYI85NRgqkaStmkgZvKNWjBXIKwEsyWCOhDwULdC/sonccH9g19z3of+QPCH7nmnNTyI8BfnYtxdkX3zPnZ6436MYiulLy/+uVDLf32PbAsoW/AbkinIBdBvSLb8Gif/BWy6NlQyUlMWAAAAAElFTkSuQmCC';
+            
+            // 验证Base64数据是否完整
+            function validateBase64(data) {
+                try {
+                    // 检查是否是有效的data URL格式
+                    if (!data.startsWith('data:image/png;base64,')) {
+                        console.error('无效的data URL格式');
+                        return false;
+                    }
+                    
+                    // 提取Base64部分并验证
+                    const base64Data = data.replace('data:image/png;base64,', '');
+                    
+                    // Base64应该能被正确解码
+                    atob(base64Data);
+                    
+                    return true;
+                } catch (error) {
+                    console.error('Base64数据验证失败:', error);
+                    return false;
+                }
+            }
+            
+            // 验证图片数据
+            if (!validateBase64(image1) || !validateBase64(image2)) {
+                console.error('图片数据验证失败');
+            }
+            
+            // 确保样式只添加一次
+            if (!document.querySelector('style[data-fcv-toggle]')) {
+                const style = document.createElement('style');
+                style.setAttribute('data-fcv-toggle', 'true');
+                style.textContent = `
+                    .fcv-toggle-image {
+                        width: 64px;
+                        height: 64px;
+                        cursor: pointer;
+                        border-radius: 8px;
+                        border: 2px solid #444;
+                        transition: all 0.3s ease;
+                        margin: 10px;
+                        display: block;
+                        background-color: #2d2d2d;
+                        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                    }
+                    
+                    .fcv-toggle-image:hover {
+                        transform: scale(1.15);
+                        border-color: #13C468;
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+                    }
+                    
+                    .fcv-toggle-container {
+                        position: relative;
+                        display: inline-block;
+                        margin: 10px;
+                    }
+                    
+                    .fcv-toggle-image:active {
+                        transform: scale(0.95);
+                    }
+                `;
+                document.head.appendChild(style);
+                console.log('样式已添加');
+            }
+            
+            // 为每个fcv标签添加图片切换功能
+            fcvElements.forEach((fcvElement, index) => {
+                // 检查是否已经添加过图片
+                if (fcvElement.previousElementSibling && 
+                    fcvElement.previousElementSibling.classList.contains('fcv-toggle-container')) {
+                    console.log(`第${index + 1}个fcv标签已处理，跳过`);
+                    return;
+                }
+                
+                // 创建容器
+                const container = document.createElement('div');
+                container.className = 'fcv-toggle-container';
+                
+                // 创建图片元素
+                const imgElement = document.createElement('img');
+                imgElement.id = `fcv-toggle-image-${index}`;
+                imgElement.className = 'fcv-toggle-image';
+                imgElement.src = image1;
+                imgElement.alt = '切换图片';
+                imgElement.title = '点击切换图片';
+                
+                imgElement.onerror = function() {
+                    console.error(`图片${index + 1}加载失败`);
+                    // 如果图片加载失败，使用SVG备用图片
+                };
+                
+                // 图片切换函数
+                function toggleImage() {
+                    if (imgElement.src === image1) {
+                        imgElement.src = image2;
+                        imgElement.style.background = '#000000';
+                    } else {
+                        imgElement.src = image1;
+                        imgElement.style.background = '#FFFFFF';
+                    }
+                }
+                
+                // 添加点击事件
+                imgElement.addEventListener('click', toggleImage);
+                
+                // 将图片添加到容器
+                container.appendChild(imgElement);
+                
+                // 将容器插入到fcv标签前
+                fcvElement.parentNode.insertBefore(container, fcvElement);
+                
+                console.log(`已为第${index + 1}个fcv标签添加图片切换功能`);
+                console.log('图片元素详情:', {
+                    id: imgElement.id,
+                    src: imgElement.src.substring(0, 50) + '...',
+                    alt: imgElement.alt,
+                    className: imgElement.className
+                });
+            });
+        }
+
+        // 页面加载完成后自动执行
+        document.addEventListener('DOMContentLoaded', function() {
+            // 延迟执行以确保所有元素都已加载
+            setTimeout(applyFCVImageToggle, 100);
+        });
+
+        // 动态检测fcv标签（适用于动态加载内容）
+        function observeFCVChanges() {
+            const observer = new MutationObserver(function(mutations) {
+                let shouldApply = false;
+                mutations.forEach(function(mutation) {
+                    if (mutation.addedNodes.length > 0) {
+                        mutation.addedNodes.forEach(function(node) {
+                            if (node.nodeType === 1) { // Element node
+                                if (node.tagName.toLowerCase() === 'fcv' || 
+                                    (node.querySelector && node.querySelector('fcv'))) {
+                                    shouldApply = true;
+                                }
+                            }
+                        });
+                    }
+                });
+                
+                if (shouldApply) {
+                    console.log('检测到新的fcv标签，重新应用功能...');
+                    setTimeout(applyFCVImageToggle, 100);
+                }
+            });
+            
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true
+            });
+            
+            console.log('已启动动态检测');
+        }
+
+        // 启动动态检测
+        setTimeout(observeFCVChanges, 1000);
+
+        // 手动触发函数（可在控制台调用）
+        window.applyFCVImageToggle = applyFCVImageToggle;
+    </script>
+</body>
+</html>
